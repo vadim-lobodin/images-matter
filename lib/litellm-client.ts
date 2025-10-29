@@ -45,6 +45,7 @@ export async function generateGeminiImage(
   const { model, prompt, aspectRatio, imageSize, numImages = 1 } = request;
 
   // Build the chat completions request body with modalities
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model,
     messages: [
@@ -127,6 +128,7 @@ export async function editGeminiImage(
   const { model, prompt, images, aspectRatio, imageSize, numImages = 1 } = request;
 
   // Build content array with text prompt and multiple images
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content: any[] = [
     {
       type: "text",
@@ -141,6 +143,7 @@ export async function editGeminiImage(
   ];
 
   // Build the chat completions request body with multimodal content
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model,
     messages: [
@@ -172,6 +175,7 @@ export async function editGeminiImage(
     ...requestBody,
     messages: [{
       ...requestBody.messages[0],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       content: requestBody.messages[0].content.map((c: any) =>
         c.type === 'image_url' ? { type: 'image_url', image_url: { url: '[BASE64_DATA]' } } : c
       )

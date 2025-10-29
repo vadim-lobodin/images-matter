@@ -2,7 +2,6 @@
 
 import { Eraser, Paintbrush, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 
 interface MaskCanvasProps {
   imageUrl: string;

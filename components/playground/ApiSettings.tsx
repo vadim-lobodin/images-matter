@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Settings, X, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 interface ApiSettingsProps {
@@ -9,24 +9,28 @@ interface ApiSettingsProps {
 }
 
 export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
-  const [apiKey, setApiKey] = useState("");
-  const [proxyUrl, setProxyUrl] = useState("https://litellm.labs.jb.gg");
+  const [apiKey, setApiKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("litellm_api_key") || "";
+    }
+    return "";
+  });
+  const [proxyUrl, setProxyUrl] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("litellm_proxy_url") || "https://litellm.labs.jb.gg";
+    }
+    return "https://litellm.labs.jb.gg";
+  });
   const [showKey, setShowKey] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedKey = localStorage.getItem("litellm_api_key");
+      const savedUrl = localStorage.getItem("litellm_proxy_url");
+      return !!(savedKey && savedUrl);
+    }
+    return false;
+  });
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Load saved settings from localStorage
-    const savedKey = localStorage.getItem("litellm_api_key");
-    const savedUrl = localStorage.getItem("litellm_proxy_url");
-
-    if (savedKey) setApiKey(savedKey);
-    if (savedUrl) setProxyUrl(savedUrl);
-    else setProxyUrl("https://litellm.labs.jb.gg"); // Default value
-
-    setIsSaved(!!(savedKey && savedUrl));
-    setError(null); // Clear errors when modal opens
-  }, [isOpen]);
 
   const handleSave = () => {
     setError(null);
@@ -46,7 +50,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
     // Validate URL format
     try {
       new URL(proxyUrl);
-    } catch (e) {
+    } catch {
       setError("Invalid proxy URL format. Please enter a valid URL (e.g., https://litellm.labs.jb.gg)");
       return;
     }
@@ -103,7 +107,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 API keys are stored locally in your browser
               </p>
               <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                Your API credentials are stored only in your browser's localStorage and are never sent to any server except the LiteLLM proxy you specify. Clear your browser data to remove them.
+                Your API credentials are stored only in your browser&apos;s localStorage and are never sent to any server except the LiteLLM proxy you specify. Clear your browser data to remove them.
               </p>
             </div>
           </div>

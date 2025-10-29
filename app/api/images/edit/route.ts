@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     // Extract images from response (images are returned as data URLs)
     const generatedImages = response.choices.flatMap((choice) => {
       if (choice.message.images && choice.message.images.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return choice.message.images.map((imageData: any) => {
           // Handle Gemini response format: { image_url: { url: "data:..." } }
           let dataUrl: string;
@@ -86,15 +87,24 @@ export async function POST(request: NextRequest) {
       data: generatedImages,
       created: Math.floor(Date.now() / 1000),
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Image editing error:", error);
+
+    // Handle error with proper type checking
+    const errorMessage = error instanceof Error ? error.message : "Failed to edit image";
+    const errorDetails = error && typeof error === 'object' && 'response' in error
+      ? (error as { response?: { data?: unknown } }).response?.data
+      : null;
+    const statusCode = error && typeof error === 'object' && 'status' in error
+      ? ((error as { status?: number }).status || 500)
+      : 500;
 
     return NextResponse.json(
       {
-        error: error.message || "Failed to edit image",
-        details: error.response?.data || null,
+        error: errorMessage,
+        details: errorDetails,
       },
-      { status: error.status || 500 }
+      { status: statusCode }
     );
   }
 }

@@ -9,7 +9,7 @@ import { ImageDisplay } from "@/components/playground/ImageDisplay";
 import { ImageUpload } from "@/components/playground/ImageUpload";
 import { GenerationHistory, addToHistory, type HistoryItem } from "@/components/playground/GenerationHistory";
 import { ApiSettings } from "@/components/playground/ApiSettings";
-import { AVAILABLE_MODELS, type ModelKey } from "@/lib/models";
+import { type ModelKey } from "@/lib/models";
 
 type TabType = "generate" | "edit";
 
@@ -79,8 +79,8 @@ export default function PlaygroundPage() {
         prompt,
         images: data.data,
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to generate image");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate image");
     } finally {
       setIsLoading(false);
     }
@@ -137,8 +137,8 @@ export default function PlaygroundPage() {
         prompt,
         images: data.data,
       });
-    } catch (err: any) {
-      setError(err.message || "Failed to edit image");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to edit image");
     } finally {
       setIsLoading(false);
     }
