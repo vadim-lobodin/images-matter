@@ -167,6 +167,14 @@ export default function PlaygroundPage() {
       ? isLoading || !prompt
       : isLoading || !prompt || uploadedImages.length === 0;
 
+  // Check if credentials are configured
+  const hasCredentials = (() => {
+    if (typeof window === "undefined") return false;
+    const apiKey = localStorage.getItem("litellm_api_key");
+    const proxyUrl = localStorage.getItem("litellm_proxy_url");
+    return !!(apiKey && proxyUrl);
+  })();
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -187,9 +195,24 @@ export default function PlaygroundPage() {
             </button>
           </div>
           <p className="text-muted-foreground">
-            Generate and edit images using AI models via Google Vertex AI
+            Generate and edit images using AI models via LiteLLM proxy
           </p>
         </div>
+
+        {/* Configuration Banner */}
+        {!hasCredentials && (
+          <div className="mb-6 rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 flex gap-3">
+            <Settings className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                Configuration Required
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Click the Settings button above to configure your LiteLLM proxy URL and API key before generating images.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Settings Modal */}
         <ApiSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
