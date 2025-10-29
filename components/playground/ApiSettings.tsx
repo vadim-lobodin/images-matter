@@ -17,9 +17,9 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
   });
   const [proxyUrl, setProxyUrl] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("litellm_proxy_url") || "";
+      return localStorage.getItem("litellm_proxy_url") || "https://litellm.labs.jb.gg";
     }
-    return "";
+    return "https://litellm.labs.jb.gg";
   });
   const [showKey, setShowKey] = useState(false);
   const [isSaved, setIsSaved] = useState(() => {
@@ -140,7 +140,16 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Your LiteLLM proxy API key or direct API key for the service you want to use
+              Get your API key from{" "}
+              <a
+                href="https://litellm.labs.jb.gg/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                https://litellm.labs.jb.gg/
+              </a>
+              {" "}(VPN or JetBrains Team WiFi required)
             </p>
           </div>
 
@@ -154,19 +163,11 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
               type="url"
               value={proxyUrl}
               onChange={(e) => setProxyUrl(e.target.value)}
-              placeholder="https://your-litellm-proxy.com"
+              placeholder="https://litellm.labs.jb.gg"
               className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
             />
             <p className="text-xs text-muted-foreground">
-              Your LiteLLM proxy URL. Set up your own proxy at{" "}
-              <a
-                href="https://docs.litellm.ai/docs/proxy/quick_start"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                docs.litellm.ai
-              </a>
+              Default JetBrains LiteLLM proxy (requires VPN/WiFi). Or use your own proxy.
             </p>
           </div>
 

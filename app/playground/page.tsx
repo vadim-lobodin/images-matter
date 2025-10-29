@@ -42,42 +42,70 @@ export default function PlaygroundPage() {
       // Get API credentials from localStorage
       const credentials = getApiCredentials();
 
-      // Build headers with credentials if available
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (credentials) {
-        headers["x-litellm-api-key"] = credentials.apiKey;
-        headers["x-litellm-proxy-url"] = credentials.proxyUrl;
+      if (!credentials) {
+        throw new Error("Please configure your API credentials in Settings");
       }
 
-      const response = await fetch("/api/images/generate", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model,
-          prompt,
-          aspectRatio,
-          imageSize,
-          numImages,
-        }),
+      // Call LiteLLM directly from the client
+      const { generateGeminiImage } = await import("@/lib/litellm-client");
+
+      const response = await generateGeminiImage({
+        model,
+        prompt,
+        aspectRatio,
+        imageSize,
+        numImages,
+        apiKey: credentials.apiKey,
+        baseURL: credentials.proxyUrl,
       });
 
-      const data = await response.json();
+      // Extract images from response
+      const images = response.choices.flatMap((choice) => {
+        if (choice.message.images && choice.message.images.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return choice.message.images.map((imageData: any) => {
+            let dataUrl: string;
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate image");
+            if (typeof imageData === 'object' && imageData.image_url?.url) {
+              dataUrl = imageData.image_url.url;
+            } else if (typeof imageData === 'string') {
+              dataUrl = imageData;
+            } else if (typeof imageData === 'object') {
+              dataUrl = imageData.url || imageData.b64_json || imageData.data || '';
+            } else {
+              dataUrl = String(imageData);
+            }
+
+            // Extract base64 data from data URL
+            const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+            if (match) {
+              return {
+                b64_json: match[2],
+                mime_type: match[1],
+              };
+            }
+
+            return {
+              b64_json: dataUrl,
+              mime_type: "image/png",
+            };
+          });
+        }
+        return [];
+      });
+
+      if (images.length === 0) {
+        throw new Error("No images were generated");
       }
 
-      setGeneratedImages(data.data);
+      setGeneratedImages(images);
 
       // Add to history
       await addToHistory({
         mode: "generate",
         model,
         prompt,
-        images: data.data,
+        images,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate image");
@@ -99,43 +127,71 @@ export default function PlaygroundPage() {
       // Get API credentials from localStorage
       const credentials = getApiCredentials();
 
-      // Build headers with credentials if available
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (credentials) {
-        headers["x-litellm-api-key"] = credentials.apiKey;
-        headers["x-litellm-proxy-url"] = credentials.proxyUrl;
+      if (!credentials) {
+        throw new Error("Please configure your API credentials in Settings");
       }
 
-      const response = await fetch("/api/images/edit", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model,
-          prompt,
-          images: uploadedImages,
-          aspectRatio,
-          imageSize,
-          numImages,
-        }),
+      // Call LiteLLM directly from the client
+      const { editGeminiImage } = await import("@/lib/litellm-client");
+
+      const response = await editGeminiImage({
+        model,
+        prompt,
+        images: uploadedImages,
+        aspectRatio,
+        imageSize,
+        numImages,
+        apiKey: credentials.apiKey,
+        baseURL: credentials.proxyUrl,
       });
 
-      const data = await response.json();
+      // Extract images from response
+      const images = response.choices.flatMap((choice) => {
+        if (choice.message.images && choice.message.images.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return choice.message.images.map((imageData: any) => {
+            let dataUrl: string;
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to edit image");
+            if (typeof imageData === 'object' && imageData.image_url?.url) {
+              dataUrl = imageData.image_url.url;
+            } else if (typeof imageData === 'string') {
+              dataUrl = imageData;
+            } else if (typeof imageData === 'object') {
+              dataUrl = imageData.url || imageData.b64_json || imageData.data || '';
+            } else {
+              dataUrl = String(imageData);
+            }
+
+            // Extract base64 data from data URL
+            const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+            if (match) {
+              return {
+                b64_json: match[2],
+                mime_type: match[1],
+              };
+            }
+
+            return {
+              b64_json: dataUrl,
+              mime_type: "image/png",
+            };
+          });
+        }
+        return [];
+      });
+
+      if (images.length === 0) {
+        throw new Error("No images were generated");
       }
 
-      setGeneratedImages(data.data);
+      setGeneratedImages(images);
 
       // Add to history
       await addToHistory({
         mode: "edit",
         model,
         prompt,
-        images: data.data,
+        images,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to edit image");

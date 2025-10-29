@@ -5,8 +5,8 @@ export interface GeminiImageRequest {
   aspectRatio?: string;
   imageSize?: string;
   numImages?: number;
-  apiKey?: string;
-  baseURL?: string;
+  apiKey: string;
+  baseURL: string;
 }
 
 export interface GeminiImageEditRequest {
@@ -16,8 +16,8 @@ export interface GeminiImageEditRequest {
   aspectRatio?: string;
   imageSize?: string;
   numImages?: number;
-  apiKey?: string;
-  baseURL?: string;
+  apiKey: string;
+  baseURL: string;
 }
 
 export interface GeminiImageResponse {
@@ -32,13 +32,11 @@ export interface GeminiImageResponse {
 export async function generateGeminiImage(
   request: GeminiImageRequest
 ): Promise<GeminiImageResponse> {
-  // Use provided credentials or fall back to environment variables
-  const apiKey = request.apiKey || process.env.LITELLM_API_KEY;
-  const baseURL = request.baseURL || process.env.LITELLM_PROXY_URL;
+  const { apiKey, baseURL } = request;
 
   if (!apiKey || !baseURL) {
     throw new Error(
-      "API credentials not configured. Please click the Settings button and enter your LiteLLM API key and proxy URL."
+      "API credentials not configured. Please configure your LiteLLM API key and proxy URL in Settings."
     );
   }
 
@@ -115,13 +113,11 @@ export async function generateGeminiImage(
 export async function editGeminiImage(
   request: GeminiImageEditRequest
 ): Promise<GeminiImageResponse> {
-  // Use provided credentials or fall back to environment variables
-  const apiKey = request.apiKey || process.env.LITELLM_API_KEY;
-  const baseURL = request.baseURL || process.env.LITELLM_PROXY_URL;
+  const { apiKey, baseURL } = request;
 
   if (!apiKey || !baseURL) {
     throw new Error(
-      "API credentials not configured. Please click the Settings button and enter your LiteLLM API key and proxy URL."
+      "API credentials not configured. Please configure your LiteLLM API key and proxy URL in Settings."
     );
   }
 
