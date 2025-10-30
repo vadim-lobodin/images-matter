@@ -3,6 +3,13 @@
 import { Clock, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 
 export interface HistoryItem {
   id: string
@@ -103,8 +110,6 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
     }
   }, [isOpen])
 
-  if (!isOpen) return null
-
   const clearHistory = async () => {
     await clearAllHistory()
     setHistory([])
@@ -149,34 +154,31 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-background border border-border rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 bg-background border-b border-border p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Generation History</h2>
-          <div className="flex items-center gap-2">
-            {history.length > 0 && (
-              <button
-                onClick={clearHistory}
-                className="text-sm text-destructive hover:underline"
-              >
-                Clear All
-              </button>
-            )}
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-accent transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} direction="right">
+      <DrawerContent className="w-full sm:max-w-lg">
+        <DrawerHeader className="border-b border-border">
+          <div className="flex items-center justify-between">
+            <DrawerTitle>Generation History</DrawerTitle>
+            <div className="flex items-center gap-2">
+              {history.length > 0 && (
+                <button
+                  onClick={clearHistory}
+                  className="text-sm text-destructive hover:underline"
+                >
+                  Clear All
+                </button>
+              )}
+              <DrawerClose asChild>
+                <button className="p-2 rounded-lg hover:bg-accent transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </DrawerClose>
+            </div>
           </div>
-        </div>
+        </DrawerHeader>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-auto p-6">
           {history.length === 0 ? (
             <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
               <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
@@ -185,7 +187,7 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
               </p>
             </div>
           ) : (
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2">
               {history.map((item) => {
                 const imageUrl =
                   item.images[0]?.url ||
@@ -245,8 +247,8 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   )
 }
 

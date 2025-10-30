@@ -7,6 +7,7 @@ import {
   resizeBox,
   HTMLContainer,
 } from '@tldraw/tldraw'
+import * as motion from 'motion/react-client'
 
 // Define the shape type
 export type GeneratedImageShape = TLBaseShape<
@@ -21,6 +22,7 @@ export type GeneratedImageShape = TLBaseShape<
     aspectRatio: string
     resolution: string
     isLoading: boolean // true when generating
+    hasAnimated: boolean // true after initial load animation
   }
 >
 
@@ -35,6 +37,7 @@ export const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
   aspectRatio: T.string,
   resolution: T.string,
   isLoading: T.boolean,
+  hasAnimated: T.boolean,
 }
 
 // Shape utility class
@@ -53,6 +56,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
       aspectRatio: '1:1',
       resolution: '1K',
       isLoading: false,
+      hasAnimated: false,
     }
   }
 
@@ -64,6 +68,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
   // Rendering
   component(shape: GeneratedImageShape) {
     const isLoading = shape.props.isLoading
+    const shouldAnimate = !shape.props.hasAnimated
 
     return (
       <HTMLContainer
@@ -75,71 +80,95 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
         }}
       >
         {isLoading ? (
-          // Loading state
-          <div
+          // Loading state with motion animation
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
             style={{
               width: '100%',
               height: '100%',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              backgroundColor: 'hsl(var(--background))',
               borderRadius: '8px',
-              border: '2px dashed rgba(0, 0, 0, 0.2)',
+              border: '1px solid hsl(var(--border))',
+              gap: '16px',
             }}
           >
-            <div
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 1,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '12px',
+                width: '48px',
+                height: '48px',
+                border: '3px solid hsl(var(--muted))',
+                borderTop: '3px solid hsl(var(--foreground))',
+                borderRadius: '50%',
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              style={{
+                fontSize: '14px',
+                color: 'hsl(var(--muted-foreground))',
+                fontWeight: '500',
               }}
             >
-              {/* Spinner */}
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  border: '4px solid rgba(0, 0, 0, 0.1)',
-                  borderTop: '4px solid rgba(0, 0, 0, 0.6)',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-              <div
-                style={{
-                  fontSize: '14px',
-                  color: 'rgba(0, 0, 0, 0.6)',
-                  fontWeight: '500',
-                }}
-              >
-                Generating...
-              </div>
-            </div>
-            <style>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
+              Generating...
+            </motion.div>
+          </motion.div>
         ) : (
-          // Image loaded state
-          <img
-            src={shape.props.imageData}
-            alt={shape.props.prompt || 'Generated image'}
-            title={shape.props.prompt}
+          // Image loaded state with conditional enter animation
+          <motion.div
+            key={`${shape.id}-${shouldAnimate ? 'animated' : 'static'}`}
+            initial={shouldAnimate ? { opacity: 0, scale: 0 } : { opacity: 1, scale: 1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={
+              shouldAnimate
+                ? {
+                    duration: 0.4,
+                    scale: { type: 'spring', visualDuration: 0.4, bounce: 0.5 },
+                  }
+                : { duration: 0 }
+            }
+            onAnimationComplete={() => {
+              if (shouldAnimate) {
+                this.editor.updateShape({
+                  id: shape.id,
+                  type: shape.type,
+                  props: { hasAnimated: true },
+                })
+              }
+            }}
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
-              borderRadius: '8px',
-              userSelect: 'none',
-              pointerEvents: 'none',
             }}
-            draggable={false}
-          />
+          >
+            <img
+              src={shape.props.imageData}
+              alt={shape.props.prompt || 'Generated image'}
+              title={shape.props.prompt}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '8px',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }}
+              draggable={false}
+            />
+          </motion.div>
         )}
       </HTMLContainer>
     )

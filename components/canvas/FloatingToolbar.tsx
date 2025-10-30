@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, History, Upload, Settings, Sparkles, Wand2 } fr
 import { PromptInput } from '@/components/playground/PromptInput'
 import { ModelSelector } from '@/components/playground/ModelSelector'
 import { ParameterControls } from '@/components/playground/ParameterControls'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { cn } from '@/lib/utils'
 import { type ModelKey } from '@/lib/models'
 
@@ -117,6 +118,7 @@ export function FloatingToolbar({
                 >
                   <History className="w-5 h-5" />
                 </button>
+                <ThemeToggle />
                 <button
                   onClick={onOpenSettings}
                   className="p-2 rounded-lg hover:bg-accent transition-colors"

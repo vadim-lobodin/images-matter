@@ -3,16 +3,10 @@ import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import type { ModelKey } from '@/lib/models'
 
 const meta: Meta<typeof FloatingToolbar> = {
-  title: 'Canvas/FloatingToolbar',
+  title: 'Components/FloatingToolbar',
   component: FloatingToolbar,
-  tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
-  },
-  argTypes: {
-    activeGenerationsCount: { control: { type: 'number', min: 0, max: 10 } },
-    selectedImagesCount: { control: { type: 'number', min: 0, max: 10 } },
-    numImages: { control: { type: 'number', min: 1, max: 4 } },
   },
 }
 
@@ -40,43 +34,10 @@ export const Default: Story = {
   },
 }
 
-export const WithPrompt: Story = {
-  args: {
-    ...Default.args,
-    prompt: 'A beautiful sunset over mountains',
-  },
-}
-
 export const EditMode: Story = {
   args: {
     ...Default.args,
     selectedImagesCount: 2,
     prompt: 'Make the sky more dramatic',
-  },
-}
-
-export const ActiveGenerations: Story = {
-  args: {
-    ...Default.args,
-    prompt: 'A futuristic cityscape',
-    activeGenerationsCount: 3,
-  },
-}
-
-export const MultipleImages: Story = {
-  args: {
-    ...Default.args,
-    numImages: 4,
-    aspectRatio: '16:9',
-    imageSize: '2K',
-  },
-}
-
-export const EditModeMultipleSelected: Story = {
-  args: {
-    ...Default.args,
-    selectedImagesCount: 4,
-    prompt: 'Add more vibrant colors',
-    activeGenerationsCount: 2,
   },
 }

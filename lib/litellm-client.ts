@@ -88,8 +88,12 @@ export async function generateGeminiImage(
     // Network error - failed to connect
     console.error('Network error:', error);
     throw new Error(
-      "Failed to connect to LiteLLM proxy. This usually happens when you are not on JetBrains Team WiFi or VPN. " +
-      "Please check your network connection, verify your proxy URL in Settings, and ensure you are connected to the required network."
+      "❌ Network Connection Failed\n\n" +
+      "Cannot reach LiteLLM proxy. Most likely you are NOT connected to JetBrains VPN.\n\n" +
+      "Please:\n" +
+      "1. Connect to JetBrains Team VPN\n" +
+      "2. Verify proxy URL in Settings\n" +
+      "3. Check your network connection"
     );
   }
 
@@ -202,8 +206,12 @@ export async function editGeminiImage(
     // Network error - failed to connect
     console.error('Network error:', error);
     throw new Error(
-      "Failed to connect to LiteLLM proxy. This usually happens when you are not on JetBrains Team WiFi or VPN. " +
-      "Please check your network connection, verify your proxy URL in Settings, and ensure you are connected to the required network."
+      "❌ Network Connection Failed\n\n" +
+      "Cannot reach LiteLLM proxy. Most likely you are NOT connected to JetBrains VPN.\n\n" +
+      "Please:\n" +
+      "1. Connect to JetBrains Team VPN\n" +
+      "2. Verify proxy URL in Settings\n" +
+      "3. Check your network connection"
     );
   }
 
