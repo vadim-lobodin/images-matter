@@ -44,7 +44,7 @@ export default function PlaygroundPage() {
   const [imageSize, setImageSize] = useState('1K')
   const [numImages, setNumImages] = useState(1)
   const [selectedImages, setSelectedImages] = useState<GeneratedImageShape[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [activeGenerationsCount, setActiveGenerationsCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
@@ -106,7 +106,8 @@ export default function PlaygroundPage() {
       return
     }
 
-    setIsLoading(true)
+    // Increment active generation counter
+    setActiveGenerationsCount(prev => prev + 1)
     setError(null)
 
     try {
@@ -278,7 +279,8 @@ export default function PlaygroundPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate image')
     } finally {
-      setIsLoading(false)
+      // Decrement active generation counter
+      setActiveGenerationsCount(prev => Math.max(0, prev - 1))
     }
   }
 
@@ -343,7 +345,7 @@ export default function PlaygroundPage() {
         onImageSizeChange={setImageSize}
         numImages={numImages}
         onNumImagesChange={setNumImages}
-        isLoading={isLoading}
+        activeGenerationsCount={activeGenerationsCount}
         onGenerate={handleGenerate}
         onOpenHistory={() => setShowHistory(true)}
         onOpenUpload={() => setShowUpload(true)}

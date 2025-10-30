@@ -19,7 +19,7 @@ interface FloatingToolbarProps {
   onImageSizeChange: (size: string) => void
   numImages: number
   onNumImagesChange: (num: number) => void
-  isLoading: boolean
+  activeGenerationsCount: number
   onGenerate: () => void
   onOpenHistory: () => void
   onOpenUpload: () => void
@@ -38,7 +38,7 @@ export function FloatingToolbar({
   onImageSizeChange,
   numImages,
   onNumImagesChange,
-  isLoading,
+  activeGenerationsCount,
   onGenerate,
   onOpenHistory,
   onOpenUpload,
@@ -86,7 +86,7 @@ export function FloatingToolbar({
               {/* Generate/Edit button */}
               <button
                 onClick={onGenerate}
-                disabled={isLoading || !prompt.trim()}
+                disabled={!prompt.trim()}
                 className={cn(
                   'w-full px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 h-[36px]',
                   'bg-primary text-primary-foreground hover:opacity-90',
@@ -98,7 +98,7 @@ export function FloatingToolbar({
                 ) : (
                   <Sparkles className="w-5 h-5" />
                 )}
-                {isLoading ? (selectedImagesCount > 0 ? 'Editing...' : 'Generating...') : buttonLabel}
+                {buttonLabel}
               </button>
 
               {/* Action buttons - below button */}
