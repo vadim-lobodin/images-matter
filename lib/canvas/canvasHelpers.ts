@@ -112,9 +112,47 @@ export function getPositionNearSelection(
 }
 
 /**
+ * Get natural dimensions from image data URL
+ */
+async function getImageDimensions(imageData: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    }
+    img.onerror = reject
+    img.src = imageData
+  })
+}
+
+/**
+ * Calculate display dimensions while maintaining aspect ratio
+ * Scales image to fit within maxSize
+ */
+function calculateDisplayDimensions(
+  naturalWidth: number,
+  naturalHeight: number,
+  maxSize: number = 512
+): { w: number; h: number } {
+  const aspectRatio = naturalWidth / naturalHeight
+
+  if (naturalWidth > naturalHeight) {
+    // Landscape
+    const w = Math.min(naturalWidth, maxSize)
+    const h = w / aspectRatio
+    return { w, h }
+  } else {
+    // Portrait or square
+    const h = Math.min(naturalHeight, maxSize)
+    const w = h * aspectRatio
+    return { w, h }
+  }
+}
+
+/**
  * Add an image to the canvas
  */
-export function addImageToCanvas(
+export async function addImageToCanvas(
   editor: Editor,
   imageData: string,
   position: { x: number; y: number },
@@ -124,11 +162,22 @@ export function addImageToCanvas(
     aspectRatio?: string
     resolution?: string
   }
-) {
-  // Get dimensions based on aspect ratio and resolution or use defaults
-  const dimensions = metadata?.aspectRatio
-    ? getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution || '1K')
-    : { w: 1024, h: 1024 }
+): Promise<string> {
+  // Get dimensions based on aspect ratio and resolution or calculate from image
+  let dimensions: { w: number; h: number }
+
+  if (metadata?.aspectRatio) {
+    dimensions = getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution || '1K')
+  } else {
+    // For uploaded images, get actual dimensions and scale proportionally
+    try {
+      const naturalDims = await getImageDimensions(imageData)
+      dimensions = calculateDisplayDimensions(naturalDims.width, naturalDims.height)
+    } catch (error) {
+      console.error('Failed to get image dimensions:', error)
+      dimensions = { w: 512, h: 512 }
+    }
+  }
 
   const shapeId = createShapeId()
 
@@ -293,7 +342,7 @@ export function createLoadingPlaceholders(
 /**
  * Add multiple images to canvas in a grid layout
  */
-export function addImagesToCanvas(
+export async function addImagesToCanvas(
   editor: Editor,
   images: string[],
   centerPosition: { x: number; y: number },
@@ -303,7 +352,7 @@ export function addImagesToCanvas(
     aspectRatio?: string
     resolution?: string
   }
-) {
+): Promise<string[]> {
   const dimensions = metadata?.aspectRatio
     ? getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution || '1K')
     : { w: 1024, h: 1024 }
@@ -312,11 +361,11 @@ export function addImagesToCanvas(
 
   if (images.length === 1) {
     // Single image - place at center
-    return [addImageToCanvas(editor, images[0], centerPosition, metadata)]
+    return [await addImageToCanvas(editor, images[0], centerPosition, metadata)]
   } else if (images.length === 2) {
     // Two images - place side by side
     const offset = (dimensions.w + spacing) / 2
-    return [
+    return await Promise.all([
       addImageToCanvas(
         editor,
         images[0],
@@ -329,7 +378,7 @@ export function addImagesToCanvas(
         { x: centerPosition.x + offset, y: centerPosition.y },
         metadata
       ),
-    ]
+    ])
   } else if (images.length <= 4) {
     // 3-4 images - place in 2x2 grid
     const offsetX = (dimensions.w + spacing) / 2
@@ -341,8 +390,10 @@ export function addImagesToCanvas(
       { x: centerPosition.x + offsetX, y: centerPosition.y + offsetY },
     ]
 
-    return images.map((imageData, index) =>
-      addImageToCanvas(editor, imageData, positions[index], metadata)
+    return await Promise.all(
+      images.map((imageData, index) =>
+        addImageToCanvas(editor, imageData, positions[index], metadata)
+      )
     )
   } else {
     // More than 4 - place in rows
@@ -355,15 +406,17 @@ export function addImagesToCanvas(
     const startX = centerPosition.x - totalWidth / 2 + dimensions.w / 2
     const startY = centerPosition.y - totalHeight / 2 + dimensions.h / 2
 
-    return images.map((imageData, index) => {
-      const row = Math.floor(index / cols)
-      const col = index % cols
-      const position = {
-        x: startX + col * (dimensions.w + spacing),
-        y: startY + row * (dimensions.h + spacing),
-      }
-      return addImageToCanvas(editor, imageData, position, metadata)
-    })
+    return await Promise.all(
+      images.map((imageData, index) => {
+        const row = Math.floor(index / cols)
+        const col = index % cols
+        const position = {
+          x: startX + col * (dimensions.w + spacing),
+          y: startY + row * (dimensions.h + spacing),
+        }
+        return addImageToCanvas(editor, imageData, position, metadata)
+      })
+    )
   }
 }
 

@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
-import { ImageUploadZone } from '@/components/canvas/ImageUploadZone'
 import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/playground/ApiSettings'
 import { type ModelKey } from '@/lib/models'
@@ -47,9 +46,9 @@ export default function PlaygroundPage() {
   const [activeGenerationsCount, setActiveGenerationsCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [showUpload, setShowUpload] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [helpersLoaded, setHelpersLoaded] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load canvas helpers dynamically on client side only
   useEffect(() => {
@@ -302,30 +301,58 @@ export default function PlaygroundPage() {
     }
   }
 
-  const handleImagesUploaded = (images: string[]) => {
+  const handleImagesUploaded = async (images: string[]) => {
     if (!editor || !helpersLoaded) return
 
     // Add uploaded images to canvas at viewport center
     const centerPos = canvasHelpers.getViewportCenter(editor)
     const spacing = 50
 
-    images.forEach((imageData, index) => {
-      const offset = (index - (images.length - 1) / 2) * (512 + spacing)
-      canvasHelpers.addImageToCanvas(
-        editor,
-        imageData,
-        { x: centerPos.x + offset, y: centerPos.y },
-        { prompt: 'Uploaded image' }
-      )
-    })
+    await Promise.all(
+      images.map((imageData, index) => {
+        const offset = (index - (images.length - 1) / 2) * (512 + spacing)
+        return canvasHelpers.addImageToCanvas(
+          editor,
+          imageData,
+          { x: centerPos.x + offset, y: centerPos.y },
+          { prompt: 'Uploaded image' }
+        )
+      })
+    )
   }
 
-  const handleHistoryImagesSelected = (images: string[]) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !editor || !helpersLoaded) return
+
+    const files = Array.from(e.target.files).filter((file) =>
+      file.type.startsWith('image/')
+    )
+
+    const base64Images = await Promise.all(
+      files.map((file) => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+      })
+    )
+
+    await handleImagesUploaded(base64Images)
+
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleHistoryImagesSelected = async (images: string[]) => {
     if (!editor || !helpersLoaded) return
 
     // Add history images to canvas at viewport center
     const centerPos = canvasHelpers.getViewportCenter(editor)
-    canvasHelpers.addImagesToCanvas(editor, images, centerPos, {
+    await canvasHelpers.addImagesToCanvas(editor, images, centerPos, {
       prompt: 'From history',
     })
   }
@@ -366,9 +393,19 @@ export default function PlaygroundPage() {
         activeGenerationsCount={activeGenerationsCount}
         onGenerate={handleGenerate}
         onOpenHistory={() => setShowHistory(true)}
-        onOpenUpload={() => setShowUpload(true)}
+        onOpenUpload={() => fileInputRef.current?.click()}
         onOpenSettings={() => setShowSettings(true)}
         selectedImagesCount={selectedImages.length}
+      />
+
+      {/* Hidden file input for uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileUpload}
+        className="hidden"
       />
 
       {/* Error notification */}
@@ -398,12 +435,6 @@ export default function PlaygroundPage() {
       )}
 
       {/* Modals */}
-      <ImageUploadZone
-        isOpen={showUpload}
-        onClose={() => setShowUpload(false)}
-        onImagesUploaded={handleImagesUploaded}
-      />
-
       <HistoryModal
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
