@@ -152,57 +152,66 @@ export default function PlaygroundPage() {
 
         console.log('Created', placeholderIds.length, 'loading placeholders for edit mode')
 
-        try {
-          // Step 2: Make API call
-          const { editGeminiImage } = await import('@/lib/litellm-client')
+        // Step 2: Make multiple parallel API calls (one per image)
+        const { editGeminiImage } = await import('@/lib/litellm-client')
 
-          const response = await editGeminiImage({
+        const requests = Array.from({ length: numImages }, (_, index) =>
+          editGeminiImage({
             model,
             prompt,
             images: inputImages,
             aspectRatio,
             imageSize,
-            numImages,
+            numImages: 1, // Each request generates only 1 image
             apiKey: credentials.apiKey,
             baseURL: credentials.proxyUrl,
           })
+            .then((response) => {
+              const imageUrls = extractImagesFromResponse(response)
+              if (imageUrls.length > 0 && index < placeholderIds.length) {
+                // Update the corresponding placeholder
+                editor.updateShape<GeneratedImageShape>({
+                  id: placeholderIds[index],
+                  type: 'generated-image',
+                  props: {
+                    imageData: imageUrls[0],
+                    isLoading: false,
+                  },
+                })
+                console.log(`Updated placeholder ${index + 1}/${numImages}`)
+                return imageUrls[0]
+              }
+              throw new Error('No image in response')
+            })
+            .catch((error) => {
+              console.error(`Request ${index + 1}/${numImages} failed:`, error)
+              // Remove failed placeholder
+              if (index < placeholderIds.length) {
+                editor.deleteShape(placeholderIds[index] as any)
+              }
+              return null
+            })
+        )
 
-          const imageUrls = extractImagesFromResponse(response)
+        // Wait for all requests to complete
+        const results = await Promise.allSettled(requests)
+        const successfulImages = results
+          .map((r) => (r.status === 'fulfilled' ? r.value : null))
+          .filter((url): url is string => url !== null)
 
-          if (imageUrls.length === 0) {
-            throw new Error('No images were generated')
-          }
-
-          // Step 3: Update placeholders with actual image data
-          imageUrls.forEach((imageUrl, index) => {
-            if (index < placeholderIds.length) {
-              editor.updateShape<GeneratedImageShape>({
-                id: placeholderIds[index],
-                type: 'generated-image',
-                props: {
-                  imageData: imageUrl,
-                  isLoading: false,
-                },
-              })
-            }
-          })
-
-          console.log('Updated', imageUrls.length, 'placeholders with image data')
-
-          // Save to history
-          await addToHistory({
-            mode: 'edit',
-            model,
-            prompt,
-            images: imageUrls.map((url) => ({ url })),
-          })
-        } catch (error) {
-          // If API call fails, remove the placeholder shapes
-          placeholderIds.forEach((id: string) => {
-            editor.deleteShape(id as any)
-          })
-          throw error
+        if (successfulImages.length === 0) {
+          throw new Error('All image generation requests failed')
         }
+
+        console.log(`Successfully generated ${successfulImages.length}/${numImages} images`)
+
+        // Save to history
+        await addToHistory({
+          mode: 'edit',
+          model,
+          prompt,
+          images: successfulImages.map((url) => ({ url })),
+        })
       } else {
         // Generate mode - no selection
 
@@ -222,56 +231,65 @@ export default function PlaygroundPage() {
 
         console.log('Created', placeholderIds.length, 'loading placeholders')
 
-        try {
-          // Step 2: Make API call
-          const { generateGeminiImage } = await import('@/lib/litellm-client')
+        // Step 2: Make multiple parallel API calls (one per image)
+        const { generateGeminiImage } = await import('@/lib/litellm-client')
 
-          const response = await generateGeminiImage({
+        const requests = Array.from({ length: numImages }, (_, index) =>
+          generateGeminiImage({
             model,
             prompt,
             aspectRatio,
             imageSize,
-            numImages,
+            numImages: 1, // Each request generates only 1 image
             apiKey: credentials.apiKey,
             baseURL: credentials.proxyUrl,
           })
+            .then((response) => {
+              const imageUrls = extractImagesFromResponse(response)
+              if (imageUrls.length > 0 && index < placeholderIds.length) {
+                // Update the corresponding placeholder
+                editor.updateShape<GeneratedImageShape>({
+                  id: placeholderIds[index],
+                  type: 'generated-image',
+                  props: {
+                    imageData: imageUrls[0],
+                    isLoading: false,
+                  },
+                })
+                console.log(`Updated placeholder ${index + 1}/${numImages}`)
+                return imageUrls[0]
+              }
+              throw new Error('No image in response')
+            })
+            .catch((error) => {
+              console.error(`Request ${index + 1}/${numImages} failed:`, error)
+              // Remove failed placeholder
+              if (index < placeholderIds.length) {
+                editor.deleteShape(placeholderIds[index] as any)
+              }
+              return null
+            })
+        )
 
-          const imageUrls = extractImagesFromResponse(response)
+        // Wait for all requests to complete
+        const results = await Promise.allSettled(requests)
+        const successfulImages = results
+          .map((r) => (r.status === 'fulfilled' ? r.value : null))
+          .filter((url): url is string => url !== null)
 
-          if (imageUrls.length === 0) {
-            throw new Error('No images were generated')
-          }
-
-          // Step 3: Update placeholders with actual image data
-          imageUrls.forEach((imageUrl, index) => {
-            if (index < placeholderIds.length) {
-              editor.updateShape<GeneratedImageShape>({
-                id: placeholderIds[index],
-                type: 'generated-image',
-                props: {
-                  imageData: imageUrl,
-                  isLoading: false,
-                },
-              })
-            }
-          })
-
-          console.log('Updated', imageUrls.length, 'placeholders with image data')
-
-          // Save to history
-          await addToHistory({
-            mode: 'generate',
-            model,
-            prompt,
-            images: imageUrls.map((url) => ({ url })),
-          })
-        } catch (error) {
-          // If API call fails, remove the placeholder shapes
-          placeholderIds.forEach((id: string) => {
-            editor.deleteShape(id as any)
-          })
-          throw error
+        if (successfulImages.length === 0) {
+          throw new Error('All image generation requests failed')
         }
+
+        console.log(`Successfully generated ${successfulImages.length}/${numImages} images`)
+
+        // Save to history
+        await addToHistory({
+          mode: 'generate',
+          model,
+          prompt,
+          images: successfulImages.map((url) => ({ url })),
+        })
       }
 
       // Clear prompt after successful generation
