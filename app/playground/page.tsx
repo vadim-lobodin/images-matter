@@ -117,8 +117,17 @@ export default function PlaygroundPage() {
 
       if (isEdit) {
         // Edit mode - use selected images
-        const inputImages = canvasHelpers.extractImageDataFromShapes(selectedImages)
-        console.log('Input images extracted:', inputImages.length)
+        const inputImages = await canvasHelpers.extractImageDataFromShapes(selectedImages, editor)
+        console.log('Input images extracted:', inputImages.length, 'from', selectedImages.length, 'selected')
+
+        if (inputImages.length === 0) {
+          throw new Error('Failed to extract image data from selected images. Please try again or use the Upload button.')
+        }
+
+        if (inputImages.length < selectedImages.length) {
+          console.warn(`Only ${inputImages.length} of ${selectedImages.length} images could be extracted`)
+        }
+
         const { editGeminiImage } = await import('@/lib/litellm-client')
 
         const response = await editGeminiImage({
@@ -272,7 +281,7 @@ export default function PlaygroundPage() {
 
       {/* Error notification */}
       {error && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
           <div className="rounded-lg bg-destructive/90 backdrop-blur-sm border border-destructive p-4 shadow-2xl">
             <p className="text-sm text-white font-medium">Error</p>
             <p className="text-sm text-white/90 mt-1">{error}</p>

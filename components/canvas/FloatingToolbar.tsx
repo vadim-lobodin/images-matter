@@ -52,11 +52,11 @@ export function FloatingToolbar({
     : 'Generate'
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
-      <div className="bg-background border border-border rounded-2xl shadow-2xl backdrop-blur-sm">
-        {/* Selection indicator banner */}
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
+      <div className="bg-background border border-border rounded-2xl shadow-2xl backdrop-blur-sm flex flex-col-reverse">
+        {/* Selection indicator banner - now at bottom */}
         {selectedImagesCount > 0 && (
-          <div className="bg-primary/10 border-b border-primary/20 px-4 py-2 flex items-center gap-2 rounded-t-2xl">
+          <div className="bg-primary/10 border-t border-primary/20 px-4 py-2 flex items-center gap-2 rounded-b-2xl">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-sm font-medium text-primary">
               {selectedImagesCount} image{selectedImagesCount > 1 ? 's' : ''} selected - Edit mode active
@@ -67,33 +67,8 @@ export function FloatingToolbar({
         {/* Collapsed view - always visible */}
         <div className="p-4">
           <div className="flex items-start gap-3">
-            {/* Left side: Action buttons */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={onOpenUpload}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title="Upload images"
-              >
-                <Upload className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onOpenHistory}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title="History"
-              >
-                <History className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onOpenSettings}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Center: Prompt input */}
-            <div className="flex-1 min-w-0">
+            {/* Prompt input - 3/4 width */}
+            <div className="flex-[3]">
               <PromptInput
                 value={prompt}
                 onChange={onPromptChange}
@@ -106,45 +81,68 @@ export function FloatingToolbar({
               />
             </div>
 
-            {/* Right side: Generate button and expand toggle */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Right column: Button + Icons below */}
+            <div className="flex-1 flex flex-col gap-3">
+              {/* Generate/Edit button */}
               <button
                 onClick={onGenerate}
                 disabled={isLoading || !prompt.trim()}
                 className={cn(
-                  'px-6 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2',
-                  selectedImagesCount > 0
-                    ? 'bg-orange-600 text-white hover:bg-orange-700'
-                    : 'bg-primary text-primary-foreground hover:opacity-90',
+                  'w-full px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 h-[36px]',
+                  'bg-primary text-primary-foreground hover:opacity-90',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
               >
                 {selectedImagesCount > 0 ? (
-                  <Wand2 className="w-4 h-4" />
+                  <Wand2 className="w-5 h-5" />
                 ) : (
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-5 h-5" />
                 )}
                 {isLoading ? (selectedImagesCount > 0 ? 'Editing...' : 'Generating...') : buttonLabel}
               </button>
 
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title={isExpanded ? 'Collapse settings' : 'Expand settings'}
-              >
-                {isExpanded ? (
-                  <ChevronUp className="w-5 h-5" />
-                ) : (
-                  <ChevronDown className="w-5 h-5" />
-                )}
-              </button>
+              {/* Action buttons - below button */}
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={onOpenUpload}
+                  className="p-2 rounded-lg hover:bg-accent transition-colors"
+                  title="Upload images"
+                >
+                  <Upload className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={onOpenHistory}
+                  className="p-2 rounded-lg hover:bg-accent transition-colors"
+                  title="History"
+                >
+                  <History className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={onOpenSettings}
+                  className="p-2 rounded-lg hover:bg-accent transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="p-2 rounded-lg hover:bg-accent transition-colors"
+                  title={isExpanded ? 'Collapse settings' : 'Expand settings'}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-5 h-5" />
+                  ) : (
+                    <ChevronUp className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Expanded view - parameters */}
         {isExpanded && (
-          <div className="border-t border-border p-4 space-y-4 animate-in slide-in-from-top-2">
+          <div className="border-b border-border p-4 space-y-4 animate-in slide-in-from-bottom-2">
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-2">Model</label>

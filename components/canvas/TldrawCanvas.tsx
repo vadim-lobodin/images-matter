@@ -43,7 +43,7 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
     const handleSelectionChange = () => {
       const selectedShapes = editor.getSelectedShapes()
       const selectedImages = selectedShapes.filter(
-        (shape: any) => shape.type === 'generated-image'
+        (shape: any) => shape.type === 'generated-image' || shape.type === 'image'
       ) as GeneratedImageShape[]
 
       console.log('Selection changed:', {

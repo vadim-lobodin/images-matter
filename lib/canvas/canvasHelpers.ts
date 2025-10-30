@@ -176,7 +176,89 @@ export function addImagesToCanvas(
 
 /**
  * Extract image data URLs from selected shapes
+ * Handles both custom generated-image shapes and standard tldraw image shapes
  */
-export function extractImageDataFromShapes(shapes: GeneratedImageShape[]): string[] {
-  return shapes.map((shape) => shape.props.imageData)
+export async function extractImageDataFromShapes(shapes: any[], editor?: Editor): Promise<string[]> {
+  console.log('Extracting image data from', shapes.length, 'shapes')
+
+  const results = await Promise.all(
+    shapes.map(async (shape, index) => {
+      console.log(`Shape ${index}:`, { type: shape.type, id: shape.id })
+
+      if (shape.type === 'generated-image') {
+        // Custom shape with direct imageData
+        console.log(`Shape ${index}: Using direct imageData`)
+        return shape.props.imageData
+      } else if (shape.type === 'image' && editor) {
+        // Standard tldraw image shape from dropped files
+        try {
+          console.log(`Shape ${index}: Exporting dropped image using editor methods`)
+
+          // Try to get SVG and convert to image
+          const svg = await editor.getSvgString([shape.id], {
+            background: false,
+          })
+
+          if (svg) {
+            console.log(`Shape ${index}: Got SVG, converting to PNG`)
+            // Create a canvas to render the SVG
+            const blob = await new Promise<Blob | null>((resolve) => {
+              const img = new Image()
+              const svgBlob = new Blob([svg.svg], { type: 'image/svg+xml' })
+              const url = URL.createObjectURL(svgBlob)
+
+              img.onload = () => {
+                const canvas = document.createElement('canvas')
+                canvas.width = svg.width
+                canvas.height = svg.height
+                const ctx = canvas.getContext('2d')
+
+                if (ctx) {
+                  ctx.drawImage(img, 0, 0)
+                  canvas.toBlob((blob) => {
+                    URL.revokeObjectURL(url)
+                    resolve(blob)
+                  }, 'image/png')
+                } else {
+                  URL.revokeObjectURL(url)
+                  resolve(null)
+                }
+              }
+
+              img.onerror = () => {
+                URL.revokeObjectURL(url)
+                resolve(null)
+              }
+
+              img.src = url
+            })
+
+            if (blob) {
+              console.log(`Shape ${index}: Converted to blob, size:`, blob.size)
+              return new Promise<string>((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                  console.log(`Shape ${index}: Blob converted to data URL`)
+                  resolve(reader.result as string)
+                }
+                reader.onerror = reject
+                reader.readAsDataURL(blob)
+              })
+            }
+          }
+        } catch (error) {
+          console.error(`Shape ${index}: Failed to export dropped image:`, error)
+        }
+
+        console.log(`Shape ${index}: Could not export dropped image`)
+        return null
+      }
+      console.log(`Shape ${index}: Could not extract image data`)
+      return null
+    })
+  )
+
+  const filtered = results.filter((data): data is string => data !== null)
+  console.log('Extracted', filtered.length, 'valid image data URLs')
+  return filtered
 }
