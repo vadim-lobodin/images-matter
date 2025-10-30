@@ -412,21 +412,27 @@ export default function PlaygroundPage() {
       {error && (
         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
           <div className="rounded-lg bg-destructive/90 backdrop-blur-sm border border-destructive p-4 shadow-2xl">
-            <p className="text-sm text-white font-medium">Error</p>
-            <p className="text-sm text-white/90 mt-1">{error}</p>
+            <p className="text-sm text-white font-semibold mb-2">Error</p>
+            <p className="text-sm text-white/90 whitespace-pre-line">{error}</p>
             {(error.includes('credentials') ||
               error.includes('Settings') ||
-              error.includes('API key')) && (
+              error.includes('API key') ||
+              error.includes('VPN') ||
+              error.includes('Network') ||
+              error.includes('proxy')) && (
               <button
-                onClick={() => setShowSettings(true)}
-                className="mt-2 text-sm text-white hover:text-white/80 underline"
+                onClick={() => {
+                  setShowSettings(true)
+                  setError(null)
+                }}
+                className="mt-3 px-3 py-1.5 text-sm text-white bg-white/20 hover:bg-white/30 rounded-md transition-colors"
               >
                 Open Settings
               </button>
             )}
             <button
               onClick={() => setError(null)}
-              className="absolute top-2 right-2 text-white/70 hover:text-white"
+              className="absolute top-3 right-3 text-white/70 hover:text-white text-xl"
             >
               ×
             </button>

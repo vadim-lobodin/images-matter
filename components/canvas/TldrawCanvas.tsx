@@ -2,6 +2,8 @@
 
 import { Tldraw, TLComponents, defaultShapeUtils } from '@tldraw/tldraw'
 import { GeneratedImageShapeUtil, GeneratedImageShape } from '@/lib/canvas/ImageShape'
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
 import '@tldraw/tldraw/tldraw.css'
 
 // Define custom shape utils
@@ -33,9 +35,30 @@ interface TldrawCanvasProps {
 }
 
 export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) {
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [editor, setEditor] = useState<any>(null)
 
-  const handleMount = (editor: any) => {
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Sync theme with tldraw when it changes
+  useEffect(() => {
+    if (editor && resolvedTheme) {
+      // tldraw uses 'dark' or 'light' as colorScheme values
+      editor.user.updateUserPreferences({
+        colorScheme: resolvedTheme === 'dark' ? 'dark' : 'light'
+      })
+    }
+  }, [editor, resolvedTheme])
+
+  const handleMount = (editorInstance: any) => {
     console.log('TldrawCanvas mounted, setting up listeners')
+    setEditor(editorInstance)
+
+    const editor = editorInstance
 
     let prevSelectedIds = new Set<string>()
 
@@ -82,6 +105,13 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
     return () => {
       unsubscribe()
     }
+  }
+
+  // Don't render until mounted to avoid SSR issues
+  if (!mounted) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', background: 'hsl(var(--background))' }} />
+    )
   }
 
   return (
