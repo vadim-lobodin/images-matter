@@ -14,12 +14,13 @@ export type GeneratedImageShape = TLBaseShape<
   {
     w: number
     h: number
-    imageData: string // base64 data URL
+    imageData: string // base64 data URL (empty when loading)
     prompt: string
     model: string
     timestamp: number
     aspectRatio: string
     resolution: string
+    isLoading: boolean // true when generating
   }
 >
 
@@ -33,6 +34,7 @@ export const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
   timestamp: T.number,
   aspectRatio: T.string,
   resolution: T.string,
+  isLoading: T.boolean,
 }
 
 // Shape utility class
@@ -50,6 +52,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
       timestamp: Date.now(),
       aspectRatio: '1:1',
       resolution: '1K',
+      isLoading: false,
     }
   }
 
@@ -60,6 +63,8 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
 
   // Rendering
   component(shape: GeneratedImageShape) {
+    const isLoading = shape.props.isLoading
+
     return (
       <HTMLContainer
         id={shape.id}
@@ -69,20 +74,73 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
           pointerEvents: 'all',
         }}
       >
-        <img
-          src={shape.props.imageData}
-          alt={shape.props.prompt || 'Generated image'}
-          title={shape.props.prompt}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: '8px',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }}
-          draggable={false}
-        />
+        {isLoading ? (
+          // Loading state
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              borderRadius: '8px',
+              border: '2px dashed rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+            >
+              {/* Spinner */}
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  border: '4px solid rgba(0, 0, 0, 0.1)',
+                  borderTop: '4px solid rgba(0, 0, 0, 0.6)',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+              <div
+                style={{
+                  fontSize: '14px',
+                  color: 'rgba(0, 0, 0, 0.6)',
+                  fontWeight: '500',
+                }}
+              >
+                Generating...
+              </div>
+            </div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        ) : (
+          // Image loaded state
+          <img
+            src={shape.props.imageData}
+            alt={shape.props.prompt || 'Generated image'}
+            title={shape.props.prompt}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              borderRadius: '8px',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+            draggable={false}
+          />
+        )}
       </HTMLContainer>
     )
   }

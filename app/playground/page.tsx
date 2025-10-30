@@ -23,6 +23,9 @@ const canvasHelpers = {
   getSelectionCenter: null as any,
   getViewportCenter: null as any,
   addImageToCanvas: null as any,
+  createLoadingPlaceholders: null as any,
+  getPositionNearSelection: null as any,
+  getDimensionsFromAspectRatio: null as any,
 }
 
 // Helper to get API credentials from localStorage
@@ -57,6 +60,9 @@ export default function PlaygroundPage() {
         canvasHelpers.getSelectionCenter = mod.getSelectionCenter
         canvasHelpers.getViewportCenter = mod.getViewportCenter
         canvasHelpers.addImageToCanvas = mod.addImageToCanvas
+        canvasHelpers.createLoadingPlaceholders = mod.createLoadingPlaceholders
+        canvasHelpers.getPositionNearSelection = mod.getPositionNearSelection
+        canvasHelpers.getDimensionsFromAspectRatio = mod.getDimensionsFromAspectRatio
         setHelpersLoaded(true)
       })
     }
@@ -128,77 +134,143 @@ export default function PlaygroundPage() {
           console.warn(`Only ${inputImages.length} of ${selectedImages.length} images could be extracted`)
         }
 
-        const { editGeminiImage } = await import('@/lib/litellm-client')
-
-        const response = await editGeminiImage({
-          model,
-          prompt,
-          images: inputImages,
-          aspectRatio,
-          imageSize,
+        // Step 1: Create loading placeholders immediately near selection
+        const dimensions = canvasHelpers.getDimensionsFromAspectRatio(aspectRatio, imageSize)
+        const nearbyPos = canvasHelpers.getPositionNearSelection(editor, selectedImages, dimensions)
+        const placeholderIds = canvasHelpers.createLoadingPlaceholders(
+          editor,
           numImages,
-          apiKey: credentials.apiKey,
-          baseURL: credentials.proxyUrl,
-        })
+          nearbyPos,
+          {
+            prompt,
+            model,
+            aspectRatio,
+            resolution: imageSize,
+          }
+        )
 
-        const imageUrls = extractImagesFromResponse(response)
+        console.log('Created', placeholderIds.length, 'loading placeholders for edit mode')
 
-        if (imageUrls.length === 0) {
-          throw new Error('No images were generated')
+        try {
+          // Step 2: Make API call
+          const { editGeminiImage } = await import('@/lib/litellm-client')
+
+          const response = await editGeminiImage({
+            model,
+            prompt,
+            images: inputImages,
+            aspectRatio,
+            imageSize,
+            numImages,
+            apiKey: credentials.apiKey,
+            baseURL: credentials.proxyUrl,
+          })
+
+          const imageUrls = extractImagesFromResponse(response)
+
+          if (imageUrls.length === 0) {
+            throw new Error('No images were generated')
+          }
+
+          // Step 3: Update placeholders with actual image data
+          imageUrls.forEach((imageUrl, index) => {
+            if (index < placeholderIds.length) {
+              editor.updateShape<GeneratedImageShape>({
+                id: placeholderIds[index],
+                type: 'generated-image',
+                props: {
+                  imageData: imageUrl,
+                  isLoading: false,
+                },
+              })
+            }
+          })
+
+          console.log('Updated', imageUrls.length, 'placeholders with image data')
+
+          // Save to history
+          await addToHistory({
+            mode: 'edit',
+            model,
+            prompt,
+            images: imageUrls.map((url) => ({ url })),
+          })
+        } catch (error) {
+          // If API call fails, remove the placeholder shapes
+          placeholderIds.forEach((id: string) => {
+            editor.deleteShape(id as any)
+          })
+          throw error
         }
-
-        // Add images to canvas near selection
-        const centerPos = canvasHelpers.getSelectionCenter(editor, selectedImages)
-        canvasHelpers.addImagesToCanvas(editor, imageUrls, centerPos, {
-          prompt,
-          model,
-          aspectRatio,
-          resolution: imageSize,
-        })
-
-        // Save to history
-        await addToHistory({
-          mode: 'edit',
-          model,
-          prompt,
-          images: imageUrls.map((url) => ({ url })),
-        })
       } else {
         // Generate mode - no selection
-        const { generateGeminiImage } = await import('@/lib/litellm-client')
 
-        const response = await generateGeminiImage({
-          model,
-          prompt,
-          aspectRatio,
-          imageSize,
-          numImages,
-          apiKey: credentials.apiKey,
-          baseURL: credentials.proxyUrl,
-        })
-
-        const imageUrls = extractImagesFromResponse(response)
-
-        if (imageUrls.length === 0) {
-          throw new Error('No images were generated')
-        }
-
-        // Add images to canvas at viewport center
+        // Step 1: Create loading placeholders immediately
         const centerPos = canvasHelpers.getViewportCenter(editor)
-        canvasHelpers.addImagesToCanvas(editor, imageUrls, centerPos, {
-          prompt,
-          model,
-          aspectRatio,
-          resolution: imageSize,
-        })
+        const placeholderIds = canvasHelpers.createLoadingPlaceholders(
+          editor,
+          numImages,
+          centerPos,
+          {
+            prompt,
+            model,
+            aspectRatio,
+            resolution: imageSize,
+          }
+        )
 
-        // Save to history
-        await addToHistory({
-          mode: 'generate',
-          model,
-          prompt,
-          images: imageUrls.map((url) => ({ url })),
-        })
+        console.log('Created', placeholderIds.length, 'loading placeholders')
+
+        try {
+          // Step 2: Make API call
+          const { generateGeminiImage } = await import('@/lib/litellm-client')
+
+          const response = await generateGeminiImage({
+            model,
+            prompt,
+            aspectRatio,
+            imageSize,
+            numImages,
+            apiKey: credentials.apiKey,
+            baseURL: credentials.proxyUrl,
+          })
+
+          const imageUrls = extractImagesFromResponse(response)
+
+          if (imageUrls.length === 0) {
+            throw new Error('No images were generated')
+          }
+
+          // Step 3: Update placeholders with actual image data
+          imageUrls.forEach((imageUrl, index) => {
+            if (index < placeholderIds.length) {
+              editor.updateShape<GeneratedImageShape>({
+                id: placeholderIds[index],
+                type: 'generated-image',
+                props: {
+                  imageData: imageUrl,
+                  isLoading: false,
+                },
+              })
+            }
+          })
+
+          console.log('Updated', imageUrls.length, 'placeholders with image data')
+
+          // Save to history
+          await addToHistory({
+            mode: 'generate',
+            model,
+            prompt,
+            images: imageUrls.map((url) => ({ url })),
+          })
+        } catch (error) {
+          // If API call fails, remove the placeholder shapes
+          placeholderIds.forEach((id: string) => {
+            editor.deleteShape(id as any)
+          })
+          throw error
+        }
       }
 
       // Clear prompt after successful generation

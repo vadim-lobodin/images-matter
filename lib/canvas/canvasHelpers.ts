@@ -2,12 +2,26 @@ import { Editor, createShapeId } from '@tldraw/tldraw'
 import { GeneratedImageShape } from './ImageShape'
 
 /**
- * Get dimensions from aspect ratio
+ * Get base size from resolution string
  */
-function getDimensionsFromAspectRatio(
+function getBaseSizeFromResolution(resolution: string): number {
+  switch (resolution) {
+    case '2K':
+      return 2048
+    case '1K':
+    default:
+      return 1024
+  }
+}
+
+/**
+ * Get dimensions from aspect ratio and resolution
+ */
+export function getDimensionsFromAspectRatio(
   aspectRatio: string,
-  baseSize: number = 512
+  resolution: string = '1K'
 ): { w: number; h: number } {
+  const baseSize = getBaseSizeFromResolution(resolution)
   const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number)
   const ratio = widthRatio / heightRatio
 
@@ -57,6 +71,47 @@ export function getSelectionCenter(
 }
 
 /**
+ * Get position near selected images for new generations
+ * Places new images to the right of the selection with spacing
+ */
+export function getPositionNearSelection(
+  editor: Editor,
+  selectedShapes: GeneratedImageShape[],
+  newImageDimensions: { w: number; h: number }
+): { x: number; y: number } {
+  if (selectedShapes.length === 0) {
+    return getViewportCenter(editor)
+  }
+
+  // Find the rightmost edge and vertical center of selected shapes
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+
+  selectedShapes.forEach((shape) => {
+    const rightEdge = shape.x + shape.props.w
+    const topEdge = shape.y
+    const bottomEdge = shape.y + shape.props.h
+
+    if (rightEdge > maxX) maxX = rightEdge
+    if (topEdge < minY) minY = topEdge
+    if (bottomEdge > maxY) maxY = bottomEdge
+  })
+
+  // Calculate vertical center of selection
+  const centerY = (minY + maxY) / 2
+
+  // Place new images to the right with spacing
+  const spacing = 100
+  const newX = maxX + spacing + newImageDimensions.w / 2
+
+  return {
+    x: newX,
+    y: centerY,
+  }
+}
+
+/**
  * Add an image to the canvas
  */
 export function addImageToCanvas(
@@ -70,10 +125,10 @@ export function addImageToCanvas(
     resolution?: string
   }
 ) {
-  // Get dimensions based on aspect ratio or use defaults
+  // Get dimensions based on aspect ratio and resolution or use defaults
   const dimensions = metadata?.aspectRatio
-    ? getDimensionsFromAspectRatio(metadata.aspectRatio)
-    : { w: 512, h: 512 }
+    ? getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution || '1K')
+    : { w: 1024, h: 1024 }
 
   const shapeId = createShapeId()
 
@@ -91,10 +146,148 @@ export function addImageToCanvas(
       timestamp: Date.now(),
       aspectRatio: metadata?.aspectRatio || '1:1',
       resolution: metadata?.resolution || '1K',
+      isLoading: false,
     },
   })
 
   return shapeId
+}
+
+/**
+ * Create loading placeholder shapes on canvas
+ * Returns array of shape IDs that can be updated later
+ */
+export function createLoadingPlaceholders(
+  editor: Editor,
+  count: number,
+  centerPosition: { x: number; y: number },
+  metadata: {
+    prompt: string
+    model: string
+    aspectRatio: string
+    resolution: string
+  }
+): string[] {
+  const dimensions = getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution)
+  const spacing = 50
+  const shapeIds: string[] = []
+
+  if (count === 1) {
+    // Single placeholder - place at center
+    const shapeId = createShapeId()
+    editor.createShape<GeneratedImageShape>({
+      id: shapeId,
+      type: 'generated-image',
+      x: centerPosition.x - dimensions.w / 2,
+      y: centerPosition.y - dimensions.h / 2,
+      props: {
+        w: dimensions.w,
+        h: dimensions.h,
+        imageData: '',
+        prompt: metadata.prompt,
+        model: metadata.model,
+        timestamp: Date.now(),
+        aspectRatio: metadata.aspectRatio,
+        resolution: metadata.resolution,
+        isLoading: true,
+      },
+    })
+    shapeIds.push(shapeId)
+  } else if (count === 2) {
+    // Two placeholders - place side by side
+    const offset = (dimensions.w + spacing) / 2
+    for (let i = 0; i < count; i++) {
+      const shapeId = createShapeId()
+      const xPos = i === 0 ? centerPosition.x - offset : centerPosition.x + offset
+      editor.createShape<GeneratedImageShape>({
+        id: shapeId,
+        type: 'generated-image',
+        x: xPos - dimensions.w / 2,
+        y: centerPosition.y - dimensions.h / 2,
+        props: {
+          w: dimensions.w,
+          h: dimensions.h,
+          imageData: '',
+          prompt: metadata.prompt,
+          model: metadata.model,
+          timestamp: Date.now(),
+          aspectRatio: metadata.aspectRatio,
+          resolution: metadata.resolution,
+          isLoading: true,
+        },
+      })
+      shapeIds.push(shapeId)
+    }
+  } else if (count <= 4) {
+    // 3-4 placeholders - place in 2x2 grid
+    const offsetX = (dimensions.w + spacing) / 2
+    const offsetY = (dimensions.h + spacing) / 2
+    const positions = [
+      { x: centerPosition.x - offsetX, y: centerPosition.y - offsetY },
+      { x: centerPosition.x + offsetX, y: centerPosition.y - offsetY },
+      { x: centerPosition.x - offsetX, y: centerPosition.y + offsetY },
+      { x: centerPosition.x + offsetX, y: centerPosition.y + offsetY },
+    ]
+
+    for (let i = 0; i < count; i++) {
+      const shapeId = createShapeId()
+      editor.createShape<GeneratedImageShape>({
+        id: shapeId,
+        type: 'generated-image',
+        x: positions[i].x - dimensions.w / 2,
+        y: positions[i].y - dimensions.h / 2,
+        props: {
+          w: dimensions.w,
+          h: dimensions.h,
+          imageData: '',
+          prompt: metadata.prompt,
+          model: metadata.model,
+          timestamp: Date.now(),
+          aspectRatio: metadata.aspectRatio,
+          resolution: metadata.resolution,
+          isLoading: true,
+        },
+      })
+      shapeIds.push(shapeId)
+    }
+  } else {
+    // More than 4 - place in rows
+    const cols = Math.ceil(Math.sqrt(count))
+    const rows = Math.ceil(count / cols)
+
+    const totalWidth = cols * dimensions.w + (cols - 1) * spacing
+    const totalHeight = rows * dimensions.h + (rows - 1) * spacing
+
+    const startX = centerPosition.x - totalWidth / 2 + dimensions.w / 2
+    const startY = centerPosition.y - totalHeight / 2 + dimensions.h / 2
+
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / cols)
+      const col = i % cols
+      const shapeId = createShapeId()
+
+      editor.createShape<GeneratedImageShape>({
+        id: shapeId,
+        type: 'generated-image',
+        x: startX + col * (dimensions.w + spacing) - dimensions.w / 2,
+        y: startY + row * (dimensions.h + spacing) - dimensions.h / 2,
+        props: {
+          w: dimensions.w,
+          h: dimensions.h,
+          imageData: '',
+          prompt: metadata.prompt,
+          model: metadata.model,
+          timestamp: Date.now(),
+          aspectRatio: metadata.aspectRatio,
+          resolution: metadata.resolution,
+          isLoading: true,
+        },
+      })
+      shapeIds.push(shapeId)
+    }
+  }
+
+  return shapeIds
 }
 
 /**
@@ -112,8 +305,8 @@ export function addImagesToCanvas(
   }
 ) {
   const dimensions = metadata?.aspectRatio
-    ? getDimensionsFromAspectRatio(metadata.aspectRatio)
-    : { w: 512, h: 512 }
+    ? getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution || '1K')
+    : { w: 1024, h: 1024 }
 
   const spacing = 50 // Space between images
 
