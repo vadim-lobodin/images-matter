@@ -95,7 +95,10 @@ export default function PlaygroundPage() {
   }
 
   const handleGenerate = async () => {
-    if (!editor) return
+    if (!editor || !helpersLoaded) {
+      setError('Canvas is still loading, please wait...')
+      return
+    }
 
     setIsLoading(true)
     setError(null)
@@ -110,9 +113,12 @@ export default function PlaygroundPage() {
       // Determine if this is generate or edit based on selection
       const isEdit = selectedImages.length > 0
 
+      console.log('Generate clicked:', { isEdit, selectedCount: selectedImages.length })
+
       if (isEdit) {
         // Edit mode - use selected images
         const inputImages = canvasHelpers.extractImageDataFromShapes(selectedImages)
+        console.log('Input images extracted:', inputImages.length)
         const { editGeminiImage } = await import('@/lib/litellm-client')
 
         const response = await editGeminiImage({

@@ -42,10 +42,18 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
         (shape: any) => shape.type === 'generated-image'
       ) as GeneratedImageShape[]
 
+      console.log('Selection changed:', {
+        totalSelected: selectedShapes.length,
+        imageShapesSelected: selectedImages.length
+      })
+
       onSelectionChange?.(selectedImages)
     }
 
     editor.on('selection-change', handleSelectionChange)
+
+    // Also call it once on mount to initialize
+    handleSelectionChange()
 
     // Notify parent that editor is ready
     onReady?.(editor)
