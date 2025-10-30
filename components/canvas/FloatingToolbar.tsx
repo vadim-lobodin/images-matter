@@ -53,10 +53,10 @@ export function FloatingToolbar({
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
-      <div className="bg-background border border-border rounded-2xl shadow-2xl backdrop-blur-sm flex flex-col-reverse">
-        {/* Selection indicator banner - now at bottom */}
+      <div className="bg-background border border-border rounded-2xl shadow-2xl backdrop-blur-sm">
+        {/* Selection indicator banner - at top */}
         {selectedImagesCount > 0 && (
-          <div className="bg-primary/10 border-t border-primary/20 px-4 py-2 flex items-center gap-2 rounded-b-2xl">
+          <div className="bg-primary/10 border-b border-primary/20 px-4 py-2 flex items-center gap-2 rounded-t-2xl">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-sm font-medium text-primary">
               {selectedImagesCount} image{selectedImagesCount > 1 ? 's' : ''} selected - Edit mode active
@@ -142,7 +142,7 @@ export function FloatingToolbar({
 
         {/* Expanded view - parameters */}
         {isExpanded && (
-          <div className="border-b border-border p-4 space-y-4 animate-in slide-in-from-bottom-2">
+          <div className="border-t border-border p-4 space-y-4 animate-in slide-in-from-bottom-2">
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-2">Model</label>
