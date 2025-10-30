@@ -74,14 +74,24 @@ export async function generateGeminiImage(
   console.log('Calling LiteLLM:', url);
   console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (error) {
+    // Network error - failed to connect
+    console.error('Network error:', error);
+    throw new Error(
+      "Failed to connect to LiteLLM proxy. This usually happens when you are not on JetBrains Team WiFi or VPN. " +
+      "Please check your network connection, verify your proxy URL in Settings, and ensure you are connected to the required network."
+    );
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -178,14 +188,24 @@ export async function editGeminiImage(
     }]
   }, null, 2));
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (error) {
+    // Network error - failed to connect
+    console.error('Network error:', error);
+    throw new Error(
+      "Failed to connect to LiteLLM proxy. This usually happens when you are not on JetBrains Team WiFi or VPN. " +
+      "Please check your network connection, verify your proxy URL in Settings, and ensure you are connected to the required network."
+    );
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
