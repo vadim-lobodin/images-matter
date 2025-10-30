@@ -35,6 +35,10 @@ interface TldrawCanvasProps {
 export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) {
 
   const handleMount = (editor: any) => {
+    console.log('TldrawCanvas mounted, setting up listeners')
+
+    let prevSelectedIds = new Set<string>()
+
     // Track selection changes
     const handleSelectionChange = () => {
       const selectedShapes = editor.getSelectedShapes()
@@ -44,13 +48,30 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
 
       console.log('Selection changed:', {
         totalSelected: selectedShapes.length,
-        imageShapesSelected: selectedImages.length
+        imageShapesSelected: selectedImages.length,
+        shapeTypes: selectedShapes.map((s: any) => s.type),
+        selectedIds: Array.from(editor.getSelectedShapeIds())
       })
 
       onSelectionChange?.(selectedImages)
+
+      // Update previous selection
+      prevSelectedIds = new Set<string>(editor.getSelectedShapeIds() as Iterable<string>)
     }
 
-    editor.on('selection-change', handleSelectionChange)
+    // Use store listener to catch any changes
+    const unsubscribe = editor.store.listen(() => {
+      const currentSelectedIds = new Set<string>(editor.getSelectedShapeIds() as Iterable<string>)
+
+      // Check if selection has changed
+      const selectionChanged =
+        currentSelectedIds.size !== prevSelectedIds.size ||
+        !Array.from(currentSelectedIds).every((id) => prevSelectedIds.has(id))
+
+      if (selectionChanged) {
+        handleSelectionChange()
+      }
+    }, { scope: 'all' })
 
     // Also call it once on mount to initialize
     handleSelectionChange()
@@ -59,7 +80,7 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
     onReady?.(editor)
 
     return () => {
-      editor.off('selection-change', handleSelectionChange)
+      unsubscribe()
     }
   }
 

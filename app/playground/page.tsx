@@ -229,12 +229,25 @@ export default function PlaygroundPage() {
     })
   }
 
+  // Debug logging
+  console.log('PlaygroundPage render:', {
+    editorLoaded: !!editor,
+    helpersLoaded,
+    selectedImagesCount: selectedImages.length,
+  })
+
   return (
     <>
       {/* Main Canvas */}
       <TldrawCanvas
-        onSelectionChange={setSelectedImages}
-        onReady={(editorInstance) => setEditor(editorInstance)}
+        onSelectionChange={(images) => {
+          console.log('Parent received selection change:', images.length)
+          setSelectedImages(images)
+        }}
+        onReady={(editorInstance) => {
+          console.log('Editor ready')
+          setEditor(editorInstance)
+        }}
       />
 
       {/* Floating Toolbar */}
