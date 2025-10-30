@@ -92,6 +92,7 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
         onMount={handleMount}
         inferDarkMode
         persistenceKey="image-playground-canvas"
+        licenseKey="tldraw-2026-02-07/WyI0cFJXdnZjdSIsWyIqIl0sMTYsIjIwMjYtMDItMDciXQ.+C6/eYU+yzMBjZjVpft9ZdyAzWgXY9v5XqLkdBnx2IgIHeSiQJuLCAE9speLM4CitrxGinBge7n1s8J9x5Y5cA"
       />
     </div>
   )
