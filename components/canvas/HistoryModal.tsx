@@ -154,7 +154,7 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
   }
 
   return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} direction="right" modal={false}>
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} direction="right" modal={false} dismissible={false}>
       <DrawerContent showOverlay={false} className="w-full sm:max-w-lg h-[calc(100vh-16px)] my-2 mr-2 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl">
         <DrawerHeader className="border-b border-border">
           <div className="flex items-center justify-between">
