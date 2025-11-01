@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { Editor, TLShapeId } from '@tldraw/tldraw'
 
 interface SelectionBadgesProps {
@@ -25,72 +25,56 @@ function calculateBadgePosition(editor: Editor, shapeId: TLShapeId): { x: number
   return editor.pageToScreen({ x: pageX, y: pageY })
 }
 
+// Helper function to calculate all badges for current selection
+function calculateAllBadges(
+  editor: Editor,
+  selectionIdMap: Map<TLShapeId, number>
+): Array<{ id: TLShapeId; number: number; x: number; y: number }> {
+  const badges: Array<{ id: TLShapeId; number: number; x: number; y: number }> = []
+
+  selectionIdMap.forEach((selectionId, shapeId) => {
+    const shape = editor.getShape(shapeId)
+    if (!shape) return
+
+    const position = calculateBadgePosition(editor, shapeId)
+    if (!position) return
+
+    badges.push({
+      id: shapeId,
+      number: selectionId,
+      x: position.x,
+      y: position.y,
+    })
+  })
+
+  return badges
+}
+
 export function SelectionBadges({ editor, selectionIdMap }: SelectionBadgesProps) {
   const [badges, setBadges] = useState<Array<{ id: TLShapeId; number: number; x: number; y: number }>>([])
 
   useEffect(() => {
-    // Early return if no editor or empty selection - badges will remain empty from useMemo below
     if (!editor || selectionIdMap.size === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBadges([])
       return
     }
 
-    // Calculate badge positions based on shape bounds
-    const newBadges: Array<{ id: TLShapeId; number: number; x: number; y: number }> = []
+    // Function to update badge positions
+    const updateBadgePositions = () => {
+      setBadges(calculateAllBadges(editor, selectionIdMap))
+    }
 
-    selectionIdMap.forEach((selectionId, shapeId) => {
-      const shape = editor.getShape(shapeId)
-      if (!shape) return
+    // Calculate initial badge positions
+    updateBadgePositions()
 
-      const position = calculateBadgePosition(editor, shapeId)
-      if (!position) return
-
-      newBadges.push({
-        id: shapeId,
-        number: selectionId,
-        x: position.x,
-        y: position.y,
-      })
-    })
-
-    setBadges(newBadges)
-
-    // Listen for camera changes to update badge positions
-    // Use requestAnimationFrame for debouncing to avoid excessive re-renders
-    let rafId: number | null = null
+    // Listen to ALL store changes (camera movements, shape changes, etc.)
+    // This ensures badges update during pan, zoom, and shape movements
     const unsubscribe = editor.store.listen(() => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId)
-      }
-
-      rafId = requestAnimationFrame(() => {
-        const updatedBadges: Array<{ id: TLShapeId; number: number; x: number; y: number }> = []
-
-        selectionIdMap.forEach((selectionId, shapeId) => {
-          const shape = editor.getShape(shapeId)
-          if (!shape) return
-
-          const position = calculateBadgePosition(editor, shapeId)
-          if (!position) return
-
-          updatedBadges.push({
-            id: shapeId,
-            number: selectionId,
-            x: position.x,
-            y: position.y,
-          })
-        })
-
-        setBadges(updatedBadges)
-        rafId = null
-      })
+      // Recalculate immediately on every change for smooth tracking
+      updateBadgePositions()
     }, { scope: 'all' })
 
     return () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId)
-      }
       unsubscribe()
     }
   }, [editor, selectionIdMap])

@@ -54,11 +54,11 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
     }
   }, [editor, resolvedTheme])
 
-  const handleMount = (editorInstance: any) => {
-    console.log('TldrawCanvas mounted, setting up listeners')
-    setEditor(editorInstance)
+  // Setup selection listener and cleanup properly
+  useEffect(() => {
+    if (!editor) return
 
-    const editor = editorInstance
+    console.log('TldrawCanvas: Setting up selection listener')
 
     let prevSelectedIds = new Set<string>()
 
@@ -96,15 +96,20 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
       }
     }, { scope: 'all' })
 
-    // Also call it once on mount to initialize
+    // Call it once on setup to initialize
     handleSelectionChange()
 
-    // Notify parent that editor is ready
-    onReady?.(editor)
-
+    // Cleanup listener on unmount
     return () => {
+      console.log('TldrawCanvas: Cleaning up selection listener')
       unsubscribe()
     }
+  }, [editor, onSelectionChange])
+
+  const handleMount = (editorInstance: any) => {
+    console.log('TldrawCanvas: Editor mounted')
+    setEditor(editorInstance)
+    onReady?.(editorInstance)
   }
 
   // Don't render until mounted to avoid SSR issues

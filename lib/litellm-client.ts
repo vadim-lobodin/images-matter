@@ -30,51 +30,27 @@ export interface GeminiImageResponse {
   }>;
 }
 
-export async function generateGeminiImage(
-  request: GeminiImageRequest
+// Shared function to make API request to LiteLLM proxy
+async function makeLiteLLMRequest(
+  apiKey: string,
+  baseURL: string,
+  requestBody: any,
+  debugLabel: string = 'LiteLLM'
 ): Promise<GeminiImageResponse> {
-  const { apiKey, baseURL } = request;
-
   if (!apiKey || !baseURL) {
     throw new Error(
       "API credentials not configured. Please configure your LiteLLM API key and proxy URL in Settings."
     );
   }
 
-  const { model, prompt, aspectRatio, imageSize, numImages = 1 } = request;
-
-  // Build the chat completions request body with modalities
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestBody: any = {
-    model,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-    modalities: ["image", "text"],
-    n: numImages,
-  };
-
-  // Add aspect ratio if provided (Gemini expects camelCase)
-  if (aspectRatio) {
-    requestBody.aspectRatio = aspectRatio;
-  }
-
-  // Add image size if provided (Gemini expects camelCase)
-  if (imageSize) {
-    requestBody.imageSize = imageSize;
-  }
-
-  // Make the request to LiteLLM proxy using chat/completions endpoint
-  // Remove trailing slash from baseURL if present
+  // Clean URL and prepare endpoint
   const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
   const url = `${cleanBaseURL}/v1/chat/completions`;
 
-  console.log('Calling LiteLLM:', url);
+  console.log(`Calling ${debugLabel}:`, url);
   console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
+  // Make network request
   let response;
   try {
     response = await fetch(url, {
@@ -86,7 +62,6 @@ export async function generateGeminiImage(
       body: JSON.stringify(requestBody),
     });
   } catch (error) {
-    // Network error - failed to connect
     console.error('Network error:', error);
     throw new Error(
       "❌ Network Connection Failed\n\n" +
@@ -98,11 +73,11 @@ export async function generateGeminiImage(
     );
   }
 
+  // Handle error responses
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.log('Error response:', errorData);
 
-    // Provide helpful error messages based on status code
     let errorMessage = errorData.error?.message || `API error: ${response.status} ${response.statusText}`;
 
     if (response.status === 401 || response.status === 403) {
@@ -120,23 +95,57 @@ export async function generateGeminiImage(
     throw new Error(errorMessage);
   }
 
+  // Parse and return success response
   const result = await response.json();
   console.log('Success response:', JSON.stringify(result, null, 2));
   return result;
 }
 
+// Helper function to build request body with common parameters
+function buildRequestBody(
+  model: string,
+  content: string | any[],
+  numImages: number,
+  aspectRatio?: string,
+  imageSize?: string
+): any {
+  const requestBody: any = {
+    model,
+    messages: [
+      {
+        role: "user",
+        content,
+      },
+    ],
+    modalities: ["image", "text"],
+    n: numImages,
+  };
+
+  if (aspectRatio) {
+    requestBody.aspectRatio = aspectRatio;
+  }
+
+  if (imageSize) {
+    requestBody.imageSize = imageSize;
+  }
+
+  return requestBody;
+}
+
+export async function generateGeminiImage(
+  request: GeminiImageRequest
+): Promise<GeminiImageResponse> {
+  const { apiKey, baseURL, model, prompt, aspectRatio, imageSize, numImages = 1 } = request;
+
+  const requestBody = buildRequestBody(model, prompt, numImages, aspectRatio, imageSize);
+
+  return makeLiteLLMRequest(apiKey, baseURL, requestBody, 'LiteLLM Generate');
+}
+
 export async function editGeminiImage(
   request: GeminiImageEditRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, baseURL } = request;
-
-  if (!apiKey || !baseURL) {
-    throw new Error(
-      "API credentials not configured. Please configure your LiteLLM API key and proxy URL in Settings."
-    );
-  }
-
-  const { model, prompt, images, imageIds, aspectRatio, imageSize, numImages = 1 } = request;
+  const { apiKey, baseURL, model, prompt, images, imageIds, aspectRatio, imageSize, numImages = 1 } = request;
 
   // Enhance prompt with image ID references if provided
   let enhancedPrompt = prompt;
@@ -145,8 +154,7 @@ export async function editGeminiImage(
     enhancedPrompt = `${prompt}\n\n[Selected images: ${imageRefs}]`;
   }
 
-  // Build content array with text prompt and multiple images
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Build multimodal content array with text and images
   const content: any[] = [
     {
       type: "text",
@@ -160,92 +168,7 @@ export async function editGeminiImage(
     })),
   ];
 
-  // Build the chat completions request body with multimodal content
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestBody: any = {
-    model,
-    messages: [
-      {
-        role: "user",
-        content,
-      },
-    ],
-    modalities: ["image", "text"],
-    n: numImages,
-  };
+  const requestBody = buildRequestBody(model, content, numImages, aspectRatio, imageSize);
 
-  // Add aspect ratio if provided (Gemini expects camelCase)
-  if (aspectRatio) {
-    requestBody.aspectRatio = aspectRatio;
-  }
-
-  // Add image size if provided (Gemini expects camelCase)
-  if (imageSize) {
-    requestBody.imageSize = imageSize;
-  }
-
-  // Make the request to LiteLLM proxy using chat/completions endpoint
-  const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
-  const url = `${cleanBaseURL}/v1/chat/completions`;
-
-  console.log('Calling LiteLLM for image edit:', url);
-  console.log('Request body:', JSON.stringify({
-    ...requestBody,
-    messages: [{
-      ...requestBody.messages[0],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      content: requestBody.messages[0].content.map((c: any) =>
-        c.type === 'image_url' ? { type: 'image_url', image_url: { url: '[BASE64_DATA]' } } : c
-      )
-    }]
-  }, null, 2));
-
-  let response;
-  try {
-    response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
-  } catch (error) {
-    // Network error - failed to connect
-    console.error('Network error:', error);
-    throw new Error(
-      "❌ Network Connection Failed\n\n" +
-      "Cannot reach LiteLLM proxy. Most likely you are NOT connected to JetBrains VPN.\n\n" +
-      "Please:\n" +
-      "1. Connect to JetBrains Team VPN\n" +
-      "2. Verify proxy URL in Settings\n" +
-      "3. Check your network connection"
-    );
-  }
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.log('Error response:', errorData);
-
-    // Provide helpful error messages based on status code
-    let errorMessage = errorData.error?.message || `API error: ${response.status} ${response.statusText}`;
-
-    if (response.status === 401 || response.status === 403) {
-      errorMessage = "Authentication failed. Please check your API key in Settings.";
-    } else if (response.status === 404) {
-      errorMessage = "API endpoint not found. Please check your proxy URL in Settings or verify the model is available.";
-    } else if (response.status === 429) {
-      errorMessage = "Rate limit exceeded. Please try again later.";
-    } else if (response.status === 400 && errorData.error?.message) {
-      errorMessage = errorData.error.message;
-    } else if (response.status >= 500) {
-      errorMessage = "Server error. Please try again later or contact support.";
-    }
-
-    throw new Error(errorMessage);
-  }
-
-  const result = await response.json();
-  console.log('Success response:', JSON.stringify(result, null, 2));
-  return result;
+  return makeLiteLLMRequest(apiKey, baseURL, requestBody, 'LiteLLM Edit');
 }

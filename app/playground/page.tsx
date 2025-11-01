@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
@@ -36,10 +36,13 @@ function getApiCredentials() {
   return apiKey && proxyUrl ? { apiKey, proxyUrl } : null
 }
 
+// Reusable empty map to avoid creating new instances
+const EMPTY_MAP = new Map<TLShapeId, number>()
+
 export default function PlaygroundPage() {
   const [editor, setEditor] = useState<Editor | null>(null)
   const editorRef = useRef<Editor | null>(null)
-  const [selectionIdMap, setSelectionIdMap] = useState<Map<TLShapeId, number>>(new Map())
+  const [selectionIdMap, setSelectionIdMap] = useState<Map<TLShapeId, number>>(EMPTY_MAP)
   const [model, setModel] = useState<ModelKey>('vertex_ai/gemini-2.5-flash-image')
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState('1:1')
@@ -108,202 +111,112 @@ export default function PlaygroundPage() {
       return
     }
 
-    // Increment active generation counter
     setActiveGenerationsCount(prev => prev + 1)
     setError(null)
 
     try {
       const credentials = getApiCredentials()
-
       if (!credentials) {
         throw new Error('Please configure your API credentials in Settings')
       }
 
-      // Determine if this is generate or edit based on selection
+      // Determine mode and prepare parameters
       const isEdit = selectedImages.length > 0
-
-      console.log('Generate clicked:', { isEdit, selectedCount: selectedImages.length })
+      let inputImages: string[] | undefined
+      let imageIds: number[] | undefined
 
       if (isEdit) {
-        // Edit mode - use selected images
-        const inputImages = await canvasHelpers.extractImageDataFromShapes(selectedImages, editor)
-        console.log('Input images extracted:', inputImages.length, 'from', selectedImages.length, 'selected')
-
-        if (inputImages.length === 0) {
+        inputImages = await canvasHelpers.extractImageDataFromShapes(selectedImages, editor)
+        if (!inputImages || inputImages.length === 0) {
           throw new Error('Failed to extract image data from selected images. Please try again or use the Upload button.')
         }
-
-        if (inputImages.length < selectedImages.length) {
-          console.warn(`Only ${inputImages.length} of ${selectedImages.length} images could be extracted`)
-        }
-
-        // Create image IDs array (1-indexed) for LLM context
-        const imageIds = selectedImages.map((_, index) => index + 1)
-
-        // Step 1: Create loading placeholders immediately near selection
-        const dimensions = canvasHelpers.getDimensionsFromAspectRatio(aspectRatio, imageSize)
-        const nearbyPos = canvasHelpers.getPositionNearSelection(editor, selectedImages, dimensions)
-        const placeholderIds = canvasHelpers.createLoadingPlaceholders(
-          editor,
-          numImages,
-          nearbyPos,
-          {
-            prompt,
-            model,
-            aspectRatio,
-            resolution: imageSize,
-          }
-        )
-
-        console.log('Created', placeholderIds.length, 'loading placeholders for edit mode')
-
-        // Step 2: Make multiple parallel API calls (one per image)
-        const { editGeminiImage } = await import('@/lib/litellm-client')
-
-        const requests = Array.from({ length: numImages }, (_, index) =>
-          editGeminiImage({
-            model,
-            prompt,
-            images: inputImages,
-            imageIds, // Pass image IDs for LLM context
-            aspectRatio,
-            imageSize,
-            numImages: 1, // Each request generates only 1 image
-            apiKey: credentials.apiKey,
-            baseURL: credentials.proxyUrl,
-          })
-            .then((response) => {
-              const imageUrls = extractImagesFromResponse(response)
-              if (imageUrls.length > 0 && index < placeholderIds.length) {
-                // Update the corresponding placeholder
-                editor.updateShape<GeneratedImageShape>({
-                  id: placeholderIds[index],
-                  type: 'generated-image',
-                  props: {
-                    imageData: imageUrls[0],
-                    isLoading: false,
-                  },
-                })
-                console.log(`Updated placeholder ${index + 1}/${numImages}`)
-                return imageUrls[0]
-              }
-              throw new Error('No image in response')
-            })
-            .catch((error) => {
-              console.error(`Request ${index + 1}/${numImages} failed:`, error)
-              // Remove failed placeholder
-              if (index < placeholderIds.length) {
-                editor.deleteShape(placeholderIds[index] as any)
-              }
-              return null
-            })
-        )
-
-        // Wait for all requests to complete
-        const results = await Promise.allSettled(requests)
-        const successfulImages = results
-          .map((r) => (r.status === 'fulfilled' ? r.value : null))
-          .filter((url): url is string => url !== null)
-
-        if (successfulImages.length === 0) {
-          throw new Error('All image generation requests failed')
-        }
-
-        console.log(`Successfully generated ${successfulImages.length}/${numImages} images`)
-
-        // Save to history
-        await addToHistory({
-          mode: 'edit',
-          model,
-          prompt,
-          images: successfulImages.map((url) => ({ url })),
-        })
-      } else {
-        // Generate mode - no selection
-
-        // Step 1: Create loading placeholders immediately
-        const centerPos = canvasHelpers.getViewportCenter(editor)
-        const placeholderIds = canvasHelpers.createLoadingPlaceholders(
-          editor,
-          numImages,
-          centerPos,
-          {
-            prompt,
-            model,
-            aspectRatio,
-            resolution: imageSize,
-          }
-        )
-
-        console.log('Created', placeholderIds.length, 'loading placeholders')
-
-        // Step 2: Make multiple parallel API calls (one per image)
-        const { generateGeminiImage } = await import('@/lib/litellm-client')
-
-        const requests = Array.from({ length: numImages }, (_, index) =>
-          generateGeminiImage({
-            model,
-            prompt,
-            aspectRatio,
-            imageSize,
-            numImages: 1, // Each request generates only 1 image
-            apiKey: credentials.apiKey,
-            baseURL: credentials.proxyUrl,
-          })
-            .then((response) => {
-              const imageUrls = extractImagesFromResponse(response)
-              if (imageUrls.length > 0 && index < placeholderIds.length) {
-                // Update the corresponding placeholder
-                editor.updateShape<GeneratedImageShape>({
-                  id: placeholderIds[index],
-                  type: 'generated-image',
-                  props: {
-                    imageData: imageUrls[0],
-                    isLoading: false,
-                  },
-                })
-                console.log(`Updated placeholder ${index + 1}/${numImages}`)
-                return imageUrls[0]
-              }
-              throw new Error('No image in response')
-            })
-            .catch((error) => {
-              console.error(`Request ${index + 1}/${numImages} failed:`, error)
-              // Remove failed placeholder
-              if (index < placeholderIds.length) {
-                editor.deleteShape(placeholderIds[index] as any)
-              }
-              return null
-            })
-        )
-
-        // Wait for all requests to complete
-        const results = await Promise.allSettled(requests)
-        const successfulImages = results
-          .map((r) => (r.status === 'fulfilled' ? r.value : null))
-          .filter((url): url is string => url !== null)
-
-        if (successfulImages.length === 0) {
-          throw new Error('All image generation requests failed')
-        }
-
-        console.log(`Successfully generated ${successfulImages.length}/${numImages} images`)
-
-        // Save to history
-        await addToHistory({
-          mode: 'generate',
-          model,
-          prompt,
-          images: successfulImages.map((url) => ({ url })),
-        })
+        imageIds = selectedImages.map((_, index) => index + 1)
       }
 
-      // Clear prompt after successful generation
+      // Calculate placeholder position based on mode
+      const dimensions = canvasHelpers.getDimensionsFromAspectRatio(aspectRatio, imageSize)
+      const position = isEdit
+        ? canvasHelpers.getPositionNearSelection(editor, selectedImages, dimensions)
+        : canvasHelpers.getViewportCenter(editor)
+
+      // Create loading placeholders
+      const placeholderIds = canvasHelpers.createLoadingPlaceholders(
+        editor,
+        numImages,
+        position,
+        { prompt, model, aspectRatio, resolution: imageSize }
+      )
+
+      // Dynamically import the appropriate API function
+      const { generateGeminiImage, editGeminiImage } = await import('@/lib/litellm-client')
+      const apiFunction = isEdit ? editGeminiImage : generateGeminiImage
+
+      // Create parallel API requests
+      const requests = Array.from({ length: numImages }, (_, index) => {
+        const baseParams = {
+          model,
+          prompt,
+          aspectRatio,
+          imageSize,
+          numImages: 1,
+          apiKey: credentials.apiKey,
+          baseURL: credentials.proxyUrl,
+        }
+
+        const params = isEdit
+          ? { ...baseParams, images: inputImages as string[], imageIds }
+          : baseParams
+
+        return apiFunction(params as any)
+          .then((response) => {
+            const imageUrls = extractImagesFromResponse(response)
+            if (imageUrls.length > 0 && index < placeholderIds.length) {
+              editor.updateShape<GeneratedImageShape>({
+                id: placeholderIds[index],
+                type: 'generated-image',
+                props: { imageData: imageUrls[0], isLoading: false },
+              })
+              return imageUrls[0]
+            }
+            throw new Error('No image in response')
+          })
+          .catch((error) => {
+            console.error(`Request ${index + 1}/${numImages} failed:`, error)
+            if (index < placeholderIds.length) {
+              editor.deleteShape(placeholderIds[index] as any)
+            }
+            return null
+          })
+      })
+
+      // Wait for all requests and filter successful ones
+      const results = await Promise.allSettled(requests)
+      const successfulImages = results
+        .map((r) => (r.status === 'fulfilled' ? r.value : null))
+        .filter((url): url is string => url !== null)
+
+      if (successfulImages.length === 0) {
+        throw new Error('All image generation requests failed')
+      }
+
+      // Show warning if some generations failed
+      if (successfulImages.length < numImages) {
+        setError(`Generated ${successfulImages.length}/${numImages} images. Some requests failed.`)
+      }
+
+      // Save to history
+      await addToHistory({
+        mode: isEdit ? 'edit' : 'generate',
+        model,
+        prompt,
+        images: successfulImages.map((url) => ({ url })),
+      })
+
+      // Clear prompt on success
       setPrompt('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate image')
     } finally {
-      // Decrement active generation counter
       setActiveGenerationsCount(prev => Math.max(0, prev - 1))
     }
   }
@@ -364,6 +277,35 @@ export default function PlaygroundPage() {
     })
   }
 
+  // Memoized selection change handler to prevent infinite loops
+  const handleSelectionChange = useCallback((images: GeneratedImageShape[]) => {
+    if (!editorRef.current) return
+
+    // Only show IDs when 2+ images (any type) are selected
+    if (images.length < 2) {
+      setSelectionIdMap(EMPTY_MAP)
+      setSelectedImages(images)
+      return
+    }
+
+    // Create new ID map for all selected image shapes
+    const newIdMap = new Map<TLShapeId, number>()
+
+    images.forEach((img, index) => {
+      const selectionId = index + 1
+      newIdMap.set(img.id, selectionId)
+    })
+
+    setSelectionIdMap(newIdMap)
+    setSelectedImages(images)
+  }, [])
+
+  // Memoized editor ready handler
+  const handleEditorReady = useCallback((editorInstance: Editor) => {
+    editorRef.current = editorInstance
+    setEditor(editorInstance)
+  }, [])
+
   return (
     <>
       {/* Selection Badge Overlay */}
@@ -371,31 +313,8 @@ export default function PlaygroundPage() {
 
       {/* Main Canvas */}
       <TldrawCanvas
-        onSelectionChange={(images) => {
-          if (!editorRef.current) return
-
-          // Only show IDs when 2+ images (any type) are selected
-          if (images.length < 2) {
-            setSelectionIdMap(new Map())
-            setSelectedImages(images)
-            return
-          }
-
-          // Create new ID map for all selected image shapes
-          const newIdMap = new Map<TLShapeId, number>()
-
-          images.forEach((img, index) => {
-            const selectionId = index + 1
-            newIdMap.set(img.id, selectionId)
-          })
-
-          setSelectionIdMap(newIdMap)
-          setSelectedImages(images)
-        }}
-        onReady={(editorInstance) => {
-          editorRef.current = editorInstance
-          setEditor(editorInstance)
-        }}
+        onSelectionChange={handleSelectionChange}
+        onReady={handleEditorReady}
       />
 
       {/* Floating Toolbar */}
