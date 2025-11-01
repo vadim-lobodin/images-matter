@@ -79,9 +79,7 @@ function DrawerContent({
     <DrawerPortal data-slot="drawer-portal">
       {!showOverlay ? (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 50 }}>
-          <div className="pointer-events-auto">
-            {content}
-          </div>
+          {content}
         </div>
       ) : (
         content
