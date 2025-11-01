@@ -263,9 +263,23 @@ export default function PlaygroundPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !editor || !helpersLoaded) return
 
+    // Filter for supported image formats (exclude SVG as API requires raster images)
     const files = Array.from(e.target.files).filter((file) =>
-      file.type.startsWith('image/')
+      file.type.startsWith('image/') && !file.type.includes('svg')
     )
+
+    // Check if any SVGs were excluded
+    const excludedSvgs = Array.from(e.target.files).filter((file) =>
+      file.type.includes('svg')
+    )
+    if (excludedSvgs.length > 0) {
+      setError(
+        `SVG files are not supported. Please upload raster images (PNG, JPG, WebP, etc.).\n\n` +
+        `Excluded ${excludedSvgs.length} SVG file${excludedSvgs.length > 1 ? 's' : ''}.`
+      )
+    }
+
+    if (files.length === 0) return
 
     const base64Images = await Promise.all(
       files.map((file) => {
@@ -360,7 +374,7 @@ export default function PlaygroundPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
         multiple
         onChange={handleFileUpload}
         className="hidden"
