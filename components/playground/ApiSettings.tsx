@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, X, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Settings, Close, View, ViewOff, WarningAlt } from "@carbon/icons-react";
 
 interface ApiSettingsProps {
   isOpen: boolean;
@@ -85,7 +85,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-primary" />
+            <Settings size={20} className="text-primary" />
             <h2 className="text-xl font-semibold text-foreground">API Settings</h2>
           </div>
           <button
@@ -93,7 +93,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             className="rounded-full p-1 hover:bg-muted transition-colors"
             aria-label="Close"
           >
-            <X className="h-5 w-5 text-muted-foreground" />
+            <Close size={20} className="text-muted-foreground" />
           </button>
         </div>
 
@@ -101,7 +101,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
         <div className="p-6 space-y-6">
           {/* Warning */}
           <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-4 flex gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <WarningAlt size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 API keys are stored locally in your browser
@@ -133,9 +133,9 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 aria-label={showKey ? "Hide key" : "Show key"}
               >
                 {showKey ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <ViewOff size={16} className="text-muted-foreground" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <View size={16} className="text-muted-foreground" />
                 )}
               </button>
             </div>
@@ -174,7 +174,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
           {/* Error */}
           {error && (
             <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4 flex gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+              <WarningAlt size={20} className="text-destructive flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-destructive">
                   {error}

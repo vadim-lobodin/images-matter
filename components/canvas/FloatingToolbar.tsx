@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, History, Upload, Settings, Sparkles, Wand2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Time, AddFilled, Settings, ArrowUp } from '@carbon/icons-react'
 import { PromptInput } from '@/components/playground/PromptInput'
 import { ModelSelector } from '@/components/playground/ModelSelector'
 import { ParameterControls } from '@/components/playground/ParameterControls'
@@ -54,7 +54,7 @@ export function FloatingToolbar({
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
-      <div className="bg-background border border-border rounded-2xl shadow-2xl backdrop-blur-sm">
+      <div className="bg-zinc-100/70 dark:bg-zinc-800/70 border border-border rounded-2xl shadow-2xl backdrop-blur-[18px] backdrop-saturate-[1.8]">
         {/* Selection indicator banner - at top */}
         {selectedImagesCount > 0 && (
           <div className="bg-primary/10 border-b border-primary/20 px-4 py-2 flex items-center gap-2 rounded-t-2xl">
@@ -66,79 +66,73 @@ export function FloatingToolbar({
         )}
 
         {/* Collapsed view - always visible */}
-        <div className="p-4">
-          <div className="flex items-start gap-3">
-            {/* Prompt input - 3/4 width */}
-            <div className="flex-[3]">
-              <PromptInput
-                value={prompt}
-                onChange={onPromptChange}
-                placeholder={
-                  selectedImagesCount > 0
-                    ? `Describe how to edit the selected image${selectedImagesCount > 1 ? 's' : ''}...`
-                    : 'Describe the image you want to generate...'
-                }
-                maxLength={4000}
-              />
-            </div>
+        <div className="pb-4">
+          {/* Prompt input - full width */}
+          <div className="px-1 pt-1">
+            <PromptInput
+              value={prompt}
+              onChange={onPromptChange}
+              placeholder={
+                selectedImagesCount > 0
+                  ? `Describe how to edit the selected image${selectedImagesCount > 1 ? 's' : ''}...`
+                  : 'Describe the image you want to generate...'
+              }
+              maxLength={4000}
+            />
+          </div>
 
-            {/* Right column: Button + Icons below */}
-            <div className="flex-1 flex flex-col gap-3">
-              {/* Generate/Edit button */}
+          {/* All action buttons in a single row below */}
+          <div className="flex items-center justify-between gap-2 px-4 pt-3">
+            {/* Left side action buttons */}
+            <div className="flex items-center gap-2">
               <button
-                onClick={onGenerate}
-                disabled={!prompt.trim()}
-                className={cn(
-                  'w-full px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 h-[36px]',
-                  'bg-primary text-primary-foreground hover:opacity-90',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
-                )}
+                onClick={onOpenUpload}
+                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                title="Upload images"
               >
-                {selectedImagesCount > 0 ? (
-                  <Wand2 className="w-5 h-5" />
-                ) : (
-                  <Sparkles className="w-5 h-5" />
-                )}
-                {buttonLabel}
+                <AddFilled size={20} />
               </button>
-
-              {/* Action buttons - below button */}
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={onOpenUpload}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors"
-                  title="Upload images"
-                >
-                  <Upload className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={onOpenHistory}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors"
-                  title="History"
-                >
-                  <History className="w-5 h-5" />
-                </button>
-                <ThemeToggle />
-                <button
-                  onClick={onOpenSettings}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors"
-                  title="Settings"
-                >
-                  <Settings className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors"
-                  title={isExpanded ? 'Collapse settings' : 'Expand settings'}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="w-5 h-5" />
-                  ) : (
-                    <ChevronUp className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={onOpenHistory}
+                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                title="History"
+              >
+                <Time size={20} />
+              </button>
+              <ThemeToggle />
+              <button
+                onClick={onOpenSettings}
+                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                title="Settings"
+              >
+                <Settings size={20} />
+              </button>
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                title={isExpanded ? 'Collapse settings' : 'Expand settings'}
+              >
+                {isExpanded ? (
+                  <ChevronDown size={20} />
+                ) : (
+                  <ChevronUp size={20} />
+                )}
+              </button>
             </div>
+
+            {/* Right side: Generate/Edit button */}
+            <button
+              onClick={onGenerate}
+              disabled={!prompt.trim()}
+              title={buttonLabel}
+              className={cn(
+                'p-3 rounded-full font-medium transition-all flex items-center justify-center',
+                'bg-primary text-primary-foreground hover:opacity-90',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              <ArrowUp size={24} />
+            </button>
           </div>
         </div>
 

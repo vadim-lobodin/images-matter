@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, Trash2, X } from 'lucide-react'
+import { Time, TrashCan, Close } from '@carbon/icons-react'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import {
@@ -170,7 +170,7 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
               )}
               <DrawerClose asChild>
                 <button className="p-2 rounded-lg hover:bg-accent transition-colors">
-                  <X className="w-5 h-5" />
+                  <Close size={20} />
                 </button>
               </DrawerClose>
             </div>
@@ -181,7 +181,7 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
         <div className="flex-1 overflow-auto p-6">
           {history.length === 0 ? (
             <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
-              <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+              <Time size={48} className="mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">
                 Your generation history will appear here
               </p>
@@ -229,7 +229,7 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
                       className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
                       aria-label="Delete"
                     >
-                      <Trash2 className="h-3 w-3 text-white" />
+                      <TrashCan size={12} className="text-white" />
                     </button>
 
                     <div className="absolute top-2 left-2 rounded bg-black/70 px-2 py-0.5 text-xs text-white">

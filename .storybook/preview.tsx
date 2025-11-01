@@ -1,7 +1,7 @@
 import type { Preview } from '@storybook/nextjs-vite'
 import '../app/globals.css'
 import React from 'react'
-import { ThemeProvider } from '../components/providers/theme-provider'
+import { ThemeProvider } from 'next-themes'
 
 const preview: Preview = {
   parameters: {

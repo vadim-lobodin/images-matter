@@ -22,7 +22,7 @@ export function PromptInput({
         placeholder={placeholder}
         rows={3}
         maxLength={maxLength}
-        className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20 resize-none"
+        className="w-full rounded-lg bg-transparent px-4 py-3 text-lg text-foreground placeholder:text-muted-foreground outline-none resize-none"
       />
     </div>
   );

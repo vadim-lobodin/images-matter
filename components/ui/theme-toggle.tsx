@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Light } from '@carbon/icons-react'
 import { useTheme } from 'next-themes'
 
 export function ThemeToggle() {
@@ -31,9 +31,9 @@ export function ThemeToggle() {
       aria-label="Toggle theme"
     >
       {theme === 'dark' ? (
-        <Sun className="w-5 h-5 text-foreground" />
+        <Light size={20} className="text-foreground" />
       ) : (
-        <Moon className="w-5 h-5 text-foreground" />
+        <Moon size={20} className="text-foreground" />
       )}
     </button>
   )
