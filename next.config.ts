@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  basePath: "/cascade",
-  assetPrefix: "/cascade",
   turbopack: {
     root: __dirname,
   },

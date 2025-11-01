@@ -5,9 +5,10 @@ import dynamic from 'next/dynamic'
 import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/playground/ApiSettings'
+import { SelectionBadges } from '@/components/canvas/SelectionBadges'
 import { type ModelKey } from '@/lib/models'
 import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
-import type { Editor } from '@tldraw/tldraw'
+import type { Editor, TLShapeId } from '@tldraw/tldraw'
 
 // Dynamically import TldrawCanvas to avoid SSR issues
 const TldrawCanvas = dynamic(
@@ -37,6 +38,8 @@ function getApiCredentials() {
 
 export default function PlaygroundPage() {
   const [editor, setEditor] = useState<Editor | null>(null)
+  const editorRef = useRef<Editor | null>(null)
+  const [selectionIdMap, setSelectionIdMap] = useState<Map<TLShapeId, number>>(new Map())
   const [model, setModel] = useState<ModelKey>('vertex_ai/gemini-2.5-flash-image')
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState('1:1')
@@ -134,6 +137,9 @@ export default function PlaygroundPage() {
           console.warn(`Only ${inputImages.length} of ${selectedImages.length} images could be extracted`)
         }
 
+        // Create image IDs array (1-indexed) for LLM context
+        const imageIds = selectedImages.map((_, index) => index + 1)
+
         // Step 1: Create loading placeholders immediately near selection
         const dimensions = canvasHelpers.getDimensionsFromAspectRatio(aspectRatio, imageSize)
         const nearbyPos = canvasHelpers.getPositionNearSelection(editor, selectedImages, dimensions)
@@ -159,6 +165,7 @@ export default function PlaygroundPage() {
             model,
             prompt,
             images: inputImages,
+            imageIds, // Pass image IDs for LLM context
             aspectRatio,
             imageSize,
             numImages: 1, // Each request generates only 1 image
@@ -357,23 +364,36 @@ export default function PlaygroundPage() {
     })
   }
 
-  // Debug logging
-  console.log('PlaygroundPage render:', {
-    editorLoaded: !!editor,
-    helpersLoaded,
-    selectedImagesCount: selectedImages.length,
-  })
-
   return (
     <>
+      {/* Selection Badge Overlay */}
+      <SelectionBadges editor={editor} selectionIdMap={selectionIdMap} />
+
       {/* Main Canvas */}
       <TldrawCanvas
         onSelectionChange={(images) => {
-          console.log('Parent received selection change:', images.length)
+          if (!editorRef.current) return
+
+          // Only show IDs when 2+ images (any type) are selected
+          if (images.length < 2) {
+            setSelectionIdMap(new Map())
+            setSelectedImages(images)
+            return
+          }
+
+          // Create new ID map for all selected image shapes
+          const newIdMap = new Map<TLShapeId, number>()
+
+          images.forEach((img, index) => {
+            const selectionId = index + 1
+            newIdMap.set(img.id, selectionId)
+          })
+
+          setSelectionIdMap(newIdMap)
           setSelectedImages(images)
         }}
         onReady={(editorInstance) => {
-          console.log('Editor ready')
+          editorRef.current = editorInstance
           setEditor(editorInstance)
         }}
       />

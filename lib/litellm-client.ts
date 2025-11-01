@@ -13,6 +13,7 @@ export interface GeminiImageEditRequest {
   model: string;
   prompt: string;
   images: string[]; // array of base64 data URLs
+  imageIds?: number[]; // optional array of IDs corresponding to images (e.g., [1, 2, 3])
   aspectRatio?: string;
   imageSize?: string;
   numImages?: number;
@@ -135,14 +136,21 @@ export async function editGeminiImage(
     );
   }
 
-  const { model, prompt, images, aspectRatio, imageSize, numImages = 1 } = request;
+  const { model, prompt, images, imageIds, aspectRatio, imageSize, numImages = 1 } = request;
+
+  // Enhance prompt with image ID references if provided
+  let enhancedPrompt = prompt;
+  if (imageIds && imageIds.length === images.length && imageIds.length > 0) {
+    const imageRefs = imageIds.map(id => `Image ${id}`).join(', ');
+    enhancedPrompt = `${prompt}\n\n[Selected images: ${imageRefs}]`;
+  }
 
   // Build content array with text prompt and multiple images
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content: any[] = [
     {
       type: "text",
-      text: prompt,
+      text: enhancedPrompt,
     },
     ...images.map(imageUrl => ({
       type: "image_url",
