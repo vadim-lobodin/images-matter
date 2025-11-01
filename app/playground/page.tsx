@@ -124,6 +124,7 @@ export default function PlaygroundPage() {
       const isEdit = selectedImages.length > 0
       let inputImages: string[] | undefined
       let imageIds: number[] | undefined
+      let combinedPromptHistory: string[] = []
 
       if (isEdit) {
         inputImages = await canvasHelpers.extractImageDataFromShapes(selectedImages, editor)
@@ -131,6 +132,18 @@ export default function PlaygroundPage() {
           throw new Error('Failed to extract image data from selected images. Please try again or use the Upload button.')
         }
         imageIds = selectedImages.map((_, index) => index + 1)
+
+        // Extract and combine prompt histories from selected images
+        const histories = selectedImages
+          .map((img) => img.props.promptHistory)
+          .filter((history): history is string[] => Array.isArray(history) && history.length > 0)
+
+        // Use the longest history as it should be most complete
+        combinedPromptHistory = histories.length > 0
+          ? histories.reduce((longest, current) =>
+              current.length > longest.length ? current : longest
+            )
+          : []
       }
 
       // Calculate placeholder position based on mode
@@ -144,7 +157,13 @@ export default function PlaygroundPage() {
         editor,
         numImages,
         position,
-        { prompt, model, aspectRatio, resolution: imageSize }
+        {
+          prompt,
+          model,
+          aspectRatio,
+          resolution: imageSize,
+          promptHistory: combinedPromptHistory,
+        }
       )
 
       // Dynamically import the appropriate API function
@@ -164,7 +183,7 @@ export default function PlaygroundPage() {
         }
 
         const params = isEdit
-          ? { ...baseParams, images: inputImages as string[], imageIds }
+          ? { ...baseParams, images: inputImages as string[], imageIds, promptHistory: combinedPromptHistory }
           : baseParams
 
         return apiFunction(params as any)

@@ -14,6 +14,7 @@ export interface GeminiImageEditRequest {
   prompt: string;
   images: string[]; // array of base64 data URLs
   imageIds?: number[]; // optional array of IDs corresponding to images (e.g., [1, 2, 3])
+  promptHistory?: string[]; // optional array of previous prompts used to create the source images
   aspectRatio?: string;
   imageSize?: string;
   numImages?: number;
@@ -145,13 +146,28 @@ export async function generateGeminiImage(
 export async function editGeminiImage(
   request: GeminiImageEditRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, baseURL, model, prompt, images, imageIds, aspectRatio, imageSize, numImages = 1 } = request;
+  const { apiKey, baseURL, model, prompt, images, imageIds, promptHistory, aspectRatio, imageSize, numImages = 1 } = request;
 
-  // Enhance prompt with image ID references if provided
-  let enhancedPrompt = prompt;
+  // Build enhanced prompt with history context and image references
+  let enhancedPrompt = '';
+
+  // Add prompt history if available
+  if (promptHistory && promptHistory.length > 0) {
+    enhancedPrompt += '[Context - Previous editing iterations:]\n';
+    promptHistory.forEach((prevPrompt, index) => {
+      enhancedPrompt += `${index + 1}. "${prevPrompt}"\n`;
+    });
+    enhancedPrompt += '\n';
+  }
+
+  // Add current request
+  enhancedPrompt += '[Current request:]\n';
+  enhancedPrompt += prompt;
+
+  // Add image ID references if provided
   if (imageIds && imageIds.length === images.length && imageIds.length > 0) {
     const imageRefs = imageIds.map(id => `Image ${id}`).join(', ');
-    enhancedPrompt = `${prompt}\n\n[Selected images: ${imageRefs}]`;
+    enhancedPrompt += `\n\n[Selected images: ${imageRefs}]`;
   }
 
   // Build multimodal content array with text and images

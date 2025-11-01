@@ -23,6 +23,7 @@ export type GeneratedImageShape = TLBaseShape<
     resolution: string
     isLoading: boolean // true when generating
     hasAnimated: boolean // true after initial load animation
+    promptHistory: string[] // array of all prompts used to create this image (for iterative editing)
   }
 >
 
@@ -38,6 +39,7 @@ export const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
   resolution: T.string,
   isLoading: T.boolean,
   hasAnimated: T.boolean,
+  promptHistory: T.arrayOf(T.string),
 }
 
 // Shape utility class
@@ -57,6 +59,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
       resolution: '1K',
       isLoading: false,
       hasAnimated: false,
+      promptHistory: [],
     }
   }
 

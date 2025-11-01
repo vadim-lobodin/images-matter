@@ -69,6 +69,7 @@ function SelectionBadgesDemo() {
       <div className="absolute inset-0 pointer-events-none">
         {Array.from(selectionIdMap.keys()).map((id, index) => {
           const bounds = mockEditor.getShapePageBounds!(id)
+          if (!bounds) return null
           return (
             <div
               key={id}

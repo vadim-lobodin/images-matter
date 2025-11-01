@@ -196,6 +196,7 @@ export async function addImageToCanvas(
       aspectRatio: metadata?.aspectRatio || '1:1',
       resolution: metadata?.resolution || '1K',
       isLoading: false,
+      promptHistory: [], // New images start with empty history
     },
   })
 
@@ -215,11 +216,15 @@ export function createLoadingPlaceholders(
     model: string
     aspectRatio: string
     resolution: string
+    promptHistory?: string[] // optional: history of prompts from source images
   }
 ): string[] {
   const dimensions = getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution)
   const spacing = 50
   const shapeIds: string[] = []
+
+  // Build prompt history: previous history + current prompt
+  const newPromptHistory = [...(metadata.promptHistory || []), metadata.prompt]
 
   if (count === 1) {
     // Single placeholder - place at center
@@ -239,6 +244,7 @@ export function createLoadingPlaceholders(
         aspectRatio: metadata.aspectRatio,
         resolution: metadata.resolution,
         isLoading: true,
+        promptHistory: newPromptHistory,
       },
     })
     shapeIds.push(shapeId)
@@ -263,6 +269,7 @@ export function createLoadingPlaceholders(
           aspectRatio: metadata.aspectRatio,
           resolution: metadata.resolution,
           isLoading: true,
+          promptHistory: newPromptHistory,
         },
       })
       shapeIds.push(shapeId)
@@ -295,6 +302,7 @@ export function createLoadingPlaceholders(
           aspectRatio: metadata.aspectRatio,
           resolution: metadata.resolution,
           isLoading: true,
+          promptHistory: newPromptHistory,
         },
       })
       shapeIds.push(shapeId)
@@ -330,6 +338,7 @@ export function createLoadingPlaceholders(
           aspectRatio: metadata.aspectRatio,
           resolution: metadata.resolution,
           isLoading: true,
+          promptHistory: newPromptHistory,
         },
       })
       shapeIds.push(shapeId)
