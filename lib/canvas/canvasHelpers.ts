@@ -35,13 +35,24 @@ export function getDimensionsFromAspectRatio(
 }
 
 /**
- * Get the center point of the viewport
+ * Get the center point of the viewport, accounting for the floating toolbar at the bottom
  */
 export function getViewportCenter(editor: Editor): { x: number; y: number } {
   const viewport = editor.getViewportPageBounds()
+  const zoom = editor.getZoomLevel()
+
+  // Floating toolbar height in screen pixels (collapsed state: ~200px, with selection: ~240px)
+  // We'll use 220px as a reasonable middle ground
+  const toolbarHeightPx = 220
+
+  // Convert toolbar height from screen pixels to page coordinates
+  const toolbarHeightPage = toolbarHeightPx / zoom
+
+  // Shift center upward by half the toolbar height to avoid overlap
+  // This ensures new images appear in the visible area above the toolbar
   return {
     x: viewport.center.x,
-    y: viewport.center.y,
+    y: viewport.center.y - toolbarHeightPage / 2,
   }
 }
 
