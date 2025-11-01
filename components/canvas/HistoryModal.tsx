@@ -3,13 +3,6 @@
 import { Time, TrashCan, Close } from '@carbon/icons-react'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
 
 export interface HistoryItem {
   id: string
@@ -153,32 +146,32 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
     }
   }
 
-  return (
-    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()} direction="right" modal={false} dismissible={false}>
-      <DrawerContent showOverlay={false} className="w-full sm:max-w-lg h-[calc(100vh-16px)] my-2 mr-2 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl">
-        <DrawerHeader className="border-b border-border">
-          <div className="flex items-center justify-between">
-            <DrawerTitle>Generation History</DrawerTitle>
-            <div className="flex items-center gap-2">
-              {history.length > 0 && (
-                <button
-                  onClick={clearHistory}
-                  className="text-sm text-destructive hover:underline"
-                >
-                  Clear All
-                </button>
-              )}
-              <DrawerClose asChild>
-                <button className="p-2 rounded-lg hover:bg-accent transition-colors">
-                  <Close size={20} />
-                </button>
-              </DrawerClose>
-            </div>
-          </div>
-        </DrawerHeader>
+  if (!isOpen) return null
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
+  return (
+    <div className="fixed top-2 right-2 bottom-2 w-full sm:max-w-lg z-50 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl flex flex-col">
+      {/* Header */}
+      <div className="border-b border-border p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Generation History</h2>
+          <div className="flex items-center gap-2">
+            {history.length > 0 && (
+              <button
+                onClick={clearHistory}
+                className="text-sm text-destructive hover:underline"
+              >
+                Clear All
+              </button>
+            )}
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-accent transition-colors">
+              <Close size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-6">
           {history.length === 0 ? (
             <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
               <Time size={48} className="mx-auto text-muted-foreground mb-3" />
@@ -246,9 +239,8 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
               })}
             </div>
           )}
-        </div>
-      </DrawerContent>
-    </Drawer>
+      </div>
+    </div>
   )
 }
 
