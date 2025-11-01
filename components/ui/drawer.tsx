@@ -18,9 +18,27 @@ function DrawerTrigger({
 }
 
 function DrawerPortal({
+  className,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Portal>) {
-  return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />
+}: React.ComponentProps<typeof DrawerPrimitive.Portal> & {
+  className?: string
+}) {
+  // Create a container with pointer-events styling if className is provided
+  const [container, setContainer] = React.useState<HTMLElement | null>(null)
+
+  React.useEffect(() => {
+    if (className) {
+      const div = document.createElement('div')
+      div.className = className
+      document.body.appendChild(div)
+      setContainer(div)
+      return () => {
+        document.body.removeChild(div)
+      }
+    }
+  }, [className])
+
+  return <DrawerPrimitive.Portal data-slot="drawer-portal" container={container} {...props} />
 }
 
 function DrawerClose({
@@ -54,7 +72,10 @@ function DrawerContent({
   showOverlay?: boolean
 }) {
   return (
-    <DrawerPortal data-slot="drawer-portal">
+    <DrawerPortal
+      data-slot="drawer-portal"
+      className={!showOverlay ? "fixed inset-0 pointer-events-none" : undefined}
+    >
       {showOverlay && <DrawerOverlay />}
       <DrawerPrimitive.Content
         data-slot="drawer-content"
