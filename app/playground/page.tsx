@@ -6,6 +6,7 @@ import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/playground/ApiSettings'
 import { SelectionBadges } from '@/components/canvas/SelectionBadges'
+import { Time } from '@carbon/icons-react'
 import { type ModelKey } from '@/lib/models'
 import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
 import type { Editor, TLShapeId } from '@tldraw/tldraw'
@@ -344,6 +345,15 @@ export default function PlaygroundPage() {
       {/* Selection Badge Overlay */}
       <SelectionBadges editor={editor} selectionIdMap={selectionIdMap} />
 
+      {/* History button - top right corner */}
+      <button
+        onClick={() => setShowHistory(true)}
+        className="fixed top-4 right-4 z-50 p-3 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/70 border border-border hover:bg-accent transition-colors backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg"
+        title="History"
+      >
+        <Time size={24} />
+      </button>
+
       {/* Main Canvas */}
       <TldrawCanvas
         onSelectionChange={handleSelectionChange}
@@ -364,7 +374,6 @@ export default function PlaygroundPage() {
         onNumImagesChange={setNumImages}
         activeGenerationsCount={activeGenerationsCount}
         onGenerate={handleGenerate}
-        onOpenHistory={() => setShowHistory(true)}
         onOpenUpload={() => fileInputRef.current?.click()}
         onOpenSettings={() => setShowSettings(true)}
         selectedImagesCount={selectedImages.length}

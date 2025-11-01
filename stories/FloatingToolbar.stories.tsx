@@ -27,7 +27,6 @@ export const Default: Story = {
     onNumImagesChange: (num: number) => console.log('Num images changed:', num),
     activeGenerationsCount: 0,
     onGenerate: () => console.log('Generate clicked'),
-    onOpenHistory: () => console.log('Open history clicked'),
     onOpenUpload: () => console.log('Open upload clicked'),
     onOpenSettings: () => console.log('Open settings clicked'),
     selectedImagesCount: 0,

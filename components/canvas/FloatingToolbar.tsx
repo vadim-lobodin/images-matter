@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Time, AddFilled, Settings, ArrowUp } from '@carbon/icons-react'
+import { ChevronDown, ChevronUp, AddFilled, Settings, ArrowUp } from '@carbon/icons-react'
 import { PromptInput } from '@/components/playground/PromptInput'
 import { ModelSelector } from '@/components/playground/ModelSelector'
 import { ParameterControls } from '@/components/playground/ParameterControls'
@@ -22,7 +22,6 @@ interface FloatingToolbarProps {
   onNumImagesChange: (num: number) => void
   activeGenerationsCount: number
   onGenerate: () => void
-  onOpenHistory: () => void
   onOpenUpload: () => void
   onOpenSettings: () => void
   selectedImagesCount: number
@@ -41,7 +40,6 @@ export function FloatingToolbar({
   onNumImagesChange,
   activeGenerationsCount,
   onGenerate,
-  onOpenHistory,
   onOpenUpload,
   onOpenSettings,
   selectedImagesCount,
@@ -91,13 +89,6 @@ export function FloatingToolbar({
                 title="Upload images"
               >
                 <AddFilled size={20} />
-              </button>
-              <button
-                onClick={onOpenHistory}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title="History"
-              >
-                <Time size={20} />
               </button>
               <ThemeToggle />
               <button
