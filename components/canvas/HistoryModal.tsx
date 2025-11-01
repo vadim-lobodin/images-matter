@@ -149,7 +149,7 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed top-2 right-2 bottom-2 w-full sm:max-w-lg z-50 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl flex flex-col">
+    <div className="fixed top-2 right-2 bottom-2 w-full sm:w-80 z-50 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl flex flex-col">
       {/* Header */}
       <div className="border-b border-border p-4">
         <div className="flex items-center justify-between">
