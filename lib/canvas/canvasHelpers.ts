@@ -1,6 +1,11 @@
 import { Editor, createShapeId } from '@tldraw/tldraw'
 import { GeneratedImageShape } from './ImageShape'
 
+// Constants
+const TOOLBAR_HEIGHT_PX = 220
+const SHAPE_SPACING = 100
+const SHAPE_PADDING = 50
+
 /**
  * Get base size from resolution string
  */
@@ -35,18 +40,102 @@ export function getDimensionsFromAspectRatio(
 }
 
 /**
+ * Check if a position overlaps with any existing shapes
+ */
+function hasOverlap(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  shapes: any[]
+): boolean {
+  for (const shape of shapes) {
+    // Skip shapes without valid dimensions
+    if (!shape.props?.w || !shape.props?.h) continue
+
+    const bounds = {
+      minX: shape.x - SHAPE_PADDING,
+      minY: shape.y - SHAPE_PADDING,
+      maxX: shape.x + shape.props.w + SHAPE_PADDING,
+      maxY: shape.y + shape.props.h + SHAPE_PADDING,
+    }
+
+    // Check if rectangles overlap
+    const overlap = !(
+      x + width < bounds.minX ||
+      x > bounds.maxX ||
+      y + height < bounds.minY ||
+      y > bounds.maxY
+    )
+
+    if (overlap) return true
+  }
+
+  return false
+}
+
+/**
+ * Find empty space in the viewport for new images
+ */
+export function findEmptySpace(
+  editor: Editor,
+  dimensions: { w: number; h: number }
+): { x: number; y: number } {
+  const viewport = editor.getViewportPageBounds()
+  const zoom = editor.getZoomLevel()
+
+  // Adjust viewport for toolbar
+  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
+  const usableViewport = {
+    minX: viewport.minX,
+    minY: viewport.minY,
+    maxX: viewport.maxX,
+    maxY: viewport.maxY - toolbarHeightPage,
+  }
+
+  // Get all existing shapes
+  const allShapes = editor.getCurrentPageShapes()
+
+  // Try positions in a grid pattern
+  const gridSize = Math.max(dimensions.w, dimensions.h) + SHAPE_SPACING
+  const cols = Math.ceil((usableViewport.maxX - usableViewport.minX) / gridSize)
+  const rows = Math.ceil((usableViewport.maxY - usableViewport.minY) / gridSize)
+
+  // Scan grid from top-left, row by row
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = usableViewport.minX + col * gridSize + gridSize / 2 - dimensions.w / 2
+      const y = usableViewport.minY + row * gridSize + gridSize / 2 - dimensions.h / 2
+
+      // Check if position is within viewport and doesn't overlap
+      if (
+        x >= usableViewport.minX &&
+        x + dimensions.w <= usableViewport.maxX &&
+        y >= usableViewport.minY &&
+        y + dimensions.h <= usableViewport.maxY &&
+        !hasOverlap(x, y, dimensions.w, dimensions.h, allShapes)
+      ) {
+        return { x: x + dimensions.w / 2, y: y + dimensions.h / 2 }
+      }
+    }
+  }
+
+  // Fallback to viewport center if no empty space found
+  return {
+    x: viewport.center.x,
+    y: viewport.center.y - toolbarHeightPage / 2,
+  }
+}
+
+/**
  * Get the center point of the viewport, accounting for the floating toolbar at the bottom
  */
 export function getViewportCenter(editor: Editor): { x: number; y: number } {
   const viewport = editor.getViewportPageBounds()
   const zoom = editor.getZoomLevel()
 
-  // Floating toolbar height in screen pixels (collapsed state: ~200px, with selection: ~240px)
-  // We'll use 220px as a reasonable middle ground
-  const toolbarHeightPx = 220
-
   // Convert toolbar height from screen pixels to page coordinates
-  const toolbarHeightPage = toolbarHeightPx / zoom
+  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
 
   // Shift center upward by half the toolbar height to avoid overlap
   // This ensures new images appear in the visible area above the toolbar
@@ -84,6 +173,7 @@ export function getSelectionCenter(
 /**
  * Get position near selected images for new generations
  * Places new images to the right of the selection with spacing
+ * Checks for overlaps and finds alternative positions if needed
  */
 export function getPositionNearSelection(
   editor: Editor,
@@ -94,30 +184,58 @@ export function getPositionNearSelection(
     return getViewportCenter(editor)
   }
 
-  // Find the rightmost edge and vertical center of selected shapes
+  // Find the bounds of selected shapes
+  let minX = Infinity
   let maxX = -Infinity
   let minY = Infinity
   let maxY = -Infinity
 
   selectedShapes.forEach((shape) => {
+    const leftEdge = shape.x
     const rightEdge = shape.x + shape.props.w
     const topEdge = shape.y
     const bottomEdge = shape.y + shape.props.h
 
+    if (leftEdge < minX) minX = leftEdge
     if (rightEdge > maxX) maxX = rightEdge
     if (topEdge < minY) minY = topEdge
     if (bottomEdge > maxY) maxY = bottomEdge
   })
 
-  // Calculate vertical center of selection
+  // Calculate centers
+  const centerX = (minX + maxX) / 2
   const centerY = (minY + maxY) / 2
 
-  // Place new images to the right with spacing
-  const spacing = 100
-  const newX = maxX + spacing + newImageDimensions.w / 2
+  // Get all existing shapes to check for overlaps
+  const allShapes = editor.getCurrentPageShapes()
 
+  // Try positions to the right, progressively further out
+  for (let i = 0; i < 5; i++) {
+    const offsetX = SHAPE_SPACING + i * (newImageDimensions.w + SHAPE_SPACING)
+    const newX = maxX + offsetX
+    const testX = newX - newImageDimensions.w / 2
+    const testY = centerY - newImageDimensions.h / 2
+
+    if (!hasOverlap(testX, testY, newImageDimensions.w, newImageDimensions.h, allShapes)) {
+      return { x: newX, y: centerY }
+    }
+  }
+
+  // If all positions to the right are blocked, try below the selection
+  for (let i = 0; i < 5; i++) {
+    const offsetY = SHAPE_SPACING + i * (newImageDimensions.h + SHAPE_SPACING)
+    const newY = maxY + offsetY
+    const testX = centerX - newImageDimensions.w / 2
+    const testY = newY - newImageDimensions.h / 2
+
+    if (!hasOverlap(testX, testY, newImageDimensions.w, newImageDimensions.h, allShapes)) {
+      return { x: centerX, y: newY }
+    }
+  }
+
+  // Fallback: place to the right of selection (might overlap, but better than nothing)
   return {
-    x: newX,
+    x: maxX + SHAPE_SPACING + newImageDimensions.w / 2,
     y: centerY,
   }
 }

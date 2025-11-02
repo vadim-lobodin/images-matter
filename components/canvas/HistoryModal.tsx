@@ -1,8 +1,9 @@
 'use client'
 
-import { Time, TrashCan, Close } from '@carbon/icons-react'
+import { Time, TrashCan } from '@carbon/icons-react'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import * as motion from 'motion/react-client'
 
 export interface HistoryItem {
   id: string
@@ -15,7 +16,6 @@ export interface HistoryItem {
 
 interface HistoryModalProps {
   isOpen: boolean
-  onClose: () => void
   onSelectImages: (images: string[]) => void
 }
 
@@ -89,26 +89,32 @@ async function clearAllHistory(): Promise<void> {
   })
 }
 
-export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalProps) {
-  const [history, setHistory] = useState<HistoryItem[]>([])
+export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
+  const [history, setHistory] = useState<HistoryItem[] | null>(null)
+  const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
-      // Reload history when modal opens
+      setShouldRender(true)
+      // Load history when modal opens
       getAllHistory()
         .then(setHistory)
         .catch((error) => {
           console.error('Failed to load history:', error)
+          setHistory([]) // Set empty array on error so panel still shows
         })
+    } else if (shouldRender) {
+      // Wait for exit animation before unmounting
+      const timer = setTimeout(() => {
+        setShouldRender(false)
+        setHistory(null)
+      }, 300) // Match panel exit duration
+      return () => clearTimeout(timer)
     }
-  }, [isOpen])
-
-  const clearHistory = async () => {
-    await clearAllHistory()
-    setHistory([])
-  }
+  }, [isOpen, shouldRender])
 
   const deleteItem = async (id: string) => {
+    if (!history) return
     await deleteHistoryItem(id)
     const newHistory = history.filter((item) => item.id !== id)
     setHistory(newHistory)
@@ -142,36 +148,23 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
 
     if (imageUrls.length > 0) {
       onSelectImages(imageUrls)
-      onClose()
     }
   }
 
-  if (!isOpen) return null
+  if (!shouldRender || history === null) return null
 
   return (
-    <div className="fixed top-4 right-4 bottom-4 w-full sm:w-80 z-50 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl flex flex-col">
-      {/* Header */}
-      <div className="border-b border-border p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Generation History</h2>
-          <div className="flex items-center gap-2">
-            {history.length > 0 && (
-              <button
-                onClick={clearHistory}
-                className="text-sm text-destructive hover:underline"
-              >
-                Clear All
-              </button>
-            )}
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-accent transition-colors">
-              <Close size={20} />
-            </button>
-          </div>
-        </div>
-      </div>
-
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={isOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
+      transition={{
+        duration: 0.3,
+        ease: [0.4, 0, 0.2, 1]
+      }}
+      className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl flex flex-col"
+    >
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
           {history.length === 0 ? (
             <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
               <Time size={48} className="mx-auto text-muted-foreground mb-3" />
@@ -180,8 +173,8 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
               </p>
             </div>
           ) : (
-            <div className="grid gap-3 grid-cols-2">
-              {history.map((item) => {
+            <div className="grid gap-4 grid-cols-2">
+              {history.map((item, index) => {
                 const imageUrl =
                   item.images[0]?.url ||
                   (item.images[0]?.b64_json
@@ -196,13 +189,27 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
                 }
 
                 return (
-                  <div
+                  <motion.div
                     key={item.id}
+                    initial={{ opacity: 0 }}
+                    animate={isOpen ? { opacity: 1 } : { opacity: 0 }}
+                    transition={{
+                      duration: 0.25,
+                      delay: isOpen ? 0.2 + index * 0.02 : 0,
+                      ease: [0.4, 0, 0.2, 1]
+                    }}
+                    style={{ transform: 'translateY(0)' }}
                     className="group relative rounded-lg border border-border overflow-hidden bg-muted cursor-pointer hover:border-ring transition-colors"
                     onClick={() => handleSelectItem(item)}
                   >
                     <div className="relative aspect-square w-full">
-                      <Image src={imageUrl} alt="History item" fill className="object-cover" />
+                      <Image
+                        src={imageUrl}
+                        alt="History item"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
                     </div>
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -225,22 +232,18 @@ export function HistoryModal({ isOpen, onClose, onSelectImages }: HistoryModalPr
                       <TrashCan size={12} className="text-white" />
                     </button>
 
-                    <div className="absolute top-2 left-2 rounded bg-black/70 px-2 py-0.5 text-xs text-white">
-                      {item.mode}
-                    </div>
-
                     {item.images.length > 1 && (
                       <div className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 text-xs text-white">
                         +{item.images.length - 1}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )
               })}
             </div>
           )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 

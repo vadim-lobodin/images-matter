@@ -6,7 +6,9 @@ import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/playground/ApiSettings'
 import { SelectionBadges } from '@/components/canvas/SelectionBadges'
-import { Time } from '@carbon/icons-react'
+import { RecentlyViewed, CloseLarge } from '@carbon/icons-react'
+import { Button } from '@/components/ui/button'
+import * as motion from 'motion/react-client'
 import { type ModelKey } from '@/lib/models'
 import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
 import type { Editor, TLShapeId } from '@tldraw/tldraw'
@@ -151,7 +153,7 @@ export default function PlaygroundPage() {
       const dimensions = canvasHelpers.getDimensionsFromAspectRatio(aspectRatio, imageSize)
       const position = isEdit
         ? canvasHelpers.getPositionNearSelection(editor, selectedImages, dimensions)
-        : canvasHelpers.getViewportCenter(editor)
+        : canvasHelpers.findEmptySpace(editor, dimensions)
 
       // Create loading placeholders
       const placeholderIds = canvasHelpers.createLoadingPlaceholders(
@@ -345,14 +347,39 @@ export default function PlaygroundPage() {
       {/* Selection Badge Overlay */}
       <SelectionBadges editor={editor} selectionIdMap={selectionIdMap} />
 
-      {/* History button - top right corner */}
-      <button
-        onClick={() => setShowHistory(true)}
-        className="fixed top-4 right-4 z-50 p-3 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/70 border border-border hover:bg-accent transition-colors backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg"
-        title="History"
+      {/* History toggle button - top right corner */}
+      <Button
+        onClick={() => setShowHistory(!showHistory)}
+        variant="outline"
+        size="icon-lg"
+        className="fixed top-4 right-4 z-50 bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg rounded-full"
+        title={showHistory ? 'Close history' : 'Open history'}
       >
-        <Time size={24} />
-      </button>
+        <div className="relative w-6 h-6">
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center"
+            animate={{
+              opacity: showHistory ? 0 : 1,
+              rotate: showHistory ? 90 : 0,
+              scale: showHistory ? 0.5 : 1
+            }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <RecentlyViewed size={24} />
+          </motion.div>
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center"
+            animate={{
+              opacity: showHistory ? 1 : 0,
+              rotate: showHistory ? 0 : -90,
+              scale: showHistory ? 1 : 0.5
+            }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <CloseLarge size={24} />
+          </motion.div>
+        </div>
+      </Button>
 
       {/* Main Canvas */}
       <TldrawCanvas
@@ -424,7 +451,6 @@ export default function PlaygroundPage() {
       {/* Modals */}
       <HistoryModal
         isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
         onSelectImages={handleHistoryImagesSelected}
       />
 
