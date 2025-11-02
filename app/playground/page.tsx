@@ -29,6 +29,7 @@ const canvasHelpers = {
   createLoadingPlaceholders: null as any,
   getPositionNearSelection: null as any,
   getDimensionsFromAspectRatio: null as any,
+  findEmptySpace: null as any,
 }
 
 // Helper to get API credentials from localStorage
@@ -71,6 +72,7 @@ export default function PlaygroundPage() {
         canvasHelpers.createLoadingPlaceholders = mod.createLoadingPlaceholders
         canvasHelpers.getPositionNearSelection = mod.getPositionNearSelection
         canvasHelpers.getDimensionsFromAspectRatio = mod.getDimensionsFromAspectRatio
+        canvasHelpers.findEmptySpace = mod.findEmptySpace
         setHelpersLoaded(true)
       })
     }
@@ -313,6 +315,22 @@ export default function PlaygroundPage() {
     })
   }
 
+  const handleCanvasDrop = async (imageUrl: string, position: { x: number; y: number }) => {
+    if (!editor || !helpersLoaded) return
+
+    try {
+      await canvasHelpers.addImageToCanvas(
+        editor,
+        imageUrl,
+        position,
+        { prompt: 'From history' }
+      )
+    } catch (err) {
+      setError('Failed to add image from history')
+      console.error('Error adding dropped image:', err)
+    }
+  }
+
   // Memoized selection change handler to prevent infinite loops
   const handleSelectionChange = useCallback((images: GeneratedImageShape[]) => {
     if (!editorRef.current) return
@@ -385,6 +403,7 @@ export default function PlaygroundPage() {
       <TldrawCanvas
         onSelectionChange={handleSelectionChange}
         onReady={handleEditorReady}
+        onDrop={handleCanvasDrop}
       />
 
       {/* Floating Toolbar */}

@@ -132,9 +132,8 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
     return date.toLocaleDateString()
   }
 
-  const handleSelectItem = (item: HistoryItem) => {
-    // Convert all images to base64 data URLs
-    const imageUrls = item.images
+  const getImageUrls = (item: HistoryItem): string[] => {
+    return item.images
       .map((img) => {
         if (img.url) return img.url
         if (img.b64_json) {
@@ -145,9 +144,52 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
         return null
       })
       .filter((url): url is string => url !== null)
+  }
 
+  const handleSelectItem = (item: HistoryItem) => {
+    const imageUrls = getImageUrls(item)
     if (imageUrls.length > 0) {
       onSelectImages(imageUrls)
+    }
+  }
+
+  const handleDragStart = (e: React.DragEvent, item: HistoryItem) => {
+    const imageUrls = getImageUrls(item)
+    if (imageUrls.length > 0) {
+      // Store the first image URL for drag and drop
+      e.dataTransfer.setData('text/plain', imageUrls[0])
+      e.dataTransfer.effectAllowed = 'copy'
+
+      // Create a clean drag preview with just the image (no card, no hover effects)
+      const imgElement = e.currentTarget.querySelector('img')
+      if (imgElement) {
+        // Clone the image to avoid the hover state
+        const dragPreview = imgElement.cloneNode(true) as HTMLImageElement
+        dragPreview.style.position = 'absolute'
+        dragPreview.style.top = '-9999px' // Position off-screen
+        dragPreview.style.left = '-9999px'
+        dragPreview.style.width = `${imgElement.width}px`
+        dragPreview.style.height = `${imgElement.height}px`
+        dragPreview.style.border = 'none'
+        dragPreview.style.borderRadius = '8px'
+        dragPreview.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+
+        document.body.appendChild(dragPreview)
+
+        // Set the cloned image as drag preview
+        e.dataTransfer.setDragImage(dragPreview, dragPreview.width / 2, dragPreview.height / 2)
+
+        // Clean up the preview after drag starts
+        setTimeout(() => {
+          try {
+            if (dragPreview.parentNode) {
+              document.body.removeChild(dragPreview)
+            }
+          } catch (err) {
+            // Element already removed, ignore
+          }
+        }, 0)
+      }
     }
   }
 
@@ -199,8 +241,10 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
                       ease: [0.4, 0, 0.2, 1]
                     }}
                     style={{ transform: 'translateY(0)' }}
-                    className="group relative rounded-lg border border-border overflow-hidden bg-muted cursor-pointer hover:border-ring transition-colors"
+                    className="group relative rounded-lg border border-border overflow-hidden bg-muted cursor-grab active:cursor-grabbing hover:border-ring transition-colors"
                     onClick={() => handleSelectItem(item)}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item)}
                   >
                     <div className="relative aspect-square w-full">
                       <Image

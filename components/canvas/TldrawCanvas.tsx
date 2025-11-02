@@ -32,9 +32,10 @@ const components: TLComponents = {
 interface TldrawCanvasProps {
   onSelectionChange?: (selectedImages: GeneratedImageShape[]) => void
   onReady?: (editor: any) => void
+  onDrop?: (imageUrl: string, position: { x: number; y: number }) => void
 }
 
-export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) {
+export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanvasProps) {
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [editor, setEditor] = useState<any>(null)
@@ -112,6 +113,29 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
     onReady?.(editorInstance)
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    // Prevent default to allow drop
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!editor || !onDrop) return
+
+    // Get image URL from drag data
+    const imageUrl = e.dataTransfer.getData('text/plain')
+    if (!imageUrl) return
+
+    // Convert screen coordinates to canvas page coordinates
+    const point = editor.screenToPage({ x: e.clientX, y: e.clientY })
+
+    // Call parent handler with image URL and position
+    onDrop(imageUrl, point)
+  }
+
   // Don't render until mounted to avoid SSR issues
   if (!mounted) {
     return (
@@ -120,7 +144,11 @@ export function TldrawCanvas({ onSelectionChange, onReady }: TldrawCanvasProps) 
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, width: '100%', height: '100%' }}>
+    <div
+      style={{ position: 'fixed', inset: 0, width: '100%', height: '100%' }}
+      onDragOverCapture={handleDragOver}
+      onDropCapture={handleCanvasDrop}
+    >
       <Tldraw
         shapeUtils={shapeUtils}
         components={components}
