@@ -365,12 +365,19 @@ export default function PlaygroundPage() {
       {/* Selection Badge Overlay */}
       <SelectionBadges editor={editor} selectionIdMap={selectionIdMap} />
 
+      {/* Logo - top left corner */}
+      <img
+        src="/logo.svg"
+        alt="Logo"
+        className="fixed top-8 left-8 z-50 h-4 dark:invert-0 invert"
+      />
+
       {/* History toggle button - top right corner */}
       <Button
         onClick={() => setShowHistory(!showHistory)}
         variant="ghost"
         size="icon-lg"
-        className="fixed top-4 right-4 z-50 bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg rounded-full"
+        className="fixed top-4 right-4 z-50 bg-neutral-100/70 dark:bg-neutral-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg rounded-full"
         title={showHistory ? 'Close history' : 'Open history'}
       >
         <div className="relative w-6 h-6">

@@ -123,24 +123,24 @@
 
 /* Tldraw canvas background */
 .tl-background {
-  @apply bg-zinc-200;
+  @apply bg-neutral-200;
 }
 
 .dark .tl-background {
-  @apply bg-zinc-900;
+  @apply bg-neutral-900;
 }
 
 /* Tldraw selection color - gray instead of blue */
 .tl-theme__light {
-  --tl-color-selection-fill: hsl(240, 5%, 48%, 24%) !important; /* zinc-500 with opacity */
-  --tl-color-selection-stroke: #71717a !important; /* zinc-500 */
-  --tl-color-selected: #71717a !important; /* zinc-500 */
+  --tl-color-selection-fill: hsl(0, 0%, 45%, 24%) !important; /* neutral-500 with opacity */
+  --tl-color-selection-stroke: #737373 !important; /* neutral-500 */
+  --tl-color-selected: #737373 !important; /* neutral-500 */
   --tl-color-selected-contrast: #ffffff !important;
 }
 
 .tl-theme__dark {
-  --tl-color-selection-fill: hsl(240, 5%, 64%, 20%) !important; /* zinc-400 with opacity */
-  --tl-color-selection-stroke: #a1a1aa !important; /* zinc-400 */
-  --tl-color-selected: #a1a1aa !important; /* zinc-400 */
-  --tl-color-selected-contrast: #18181b !important;
+  --tl-color-selection-fill: hsl(0, 0%, 64%, 20%) !important; /* neutral-400 with opacity */
+  --tl-color-selection-stroke: #a3a3a3 !important; /* neutral-400 */
+  --tl-color-selected: #a3a3a3 !important; /* neutral-400 */
+  --tl-color-selected-contrast: #171717 !important;
 }

@@ -35,8 +35,8 @@ function DottedGrid() {
     const ctx = canvas.current.getContext('2d')
     if (!ctx) return
 
-    // Fill background with zinc-900 in dark mode, zinc-100 in light mode
-    ctx.fillStyle = isDarkMode ? '#18181b' : '#f4f4f5'
+    // Fill background with neutral-900 in dark mode, neutral-100 in light mode
+    ctx.fillStyle = isDarkMode ? '#171717' : '#f5f5f5'
     ctx.fillRect(0, 0, canvasW, canvasH)
 
     // Calculate grid boundaries in page space
@@ -184,21 +184,37 @@ export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanva
     e.dataTransfer.dropEffect = 'copy'
   }
 
-  const handleCanvasDrop = (e: React.DragEvent) => {
+  const handleCanvasDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
     if (!editor || !onDrop) return
 
-    // Get image URL from drag data
-    const imageUrl = e.dataTransfer.getData('text/plain')
-    if (!imageUrl) return
-
     // Convert screen coordinates to canvas page coordinates
     const point = editor.screenToPage({ x: e.clientX, y: e.clientY })
 
-    // Call parent handler with image URL and position
-    onDrop(imageUrl, point)
+    // Check for image URL from drag data (from history panel)
+    const imageUrl = e.dataTransfer.getData('text/plain')
+    if (imageUrl) {
+      onDrop(imageUrl, point)
+      return
+    }
+
+    // Check for files from Finder/file system
+    const files = Array.from(e.dataTransfer.files).filter(file =>
+      file.type.startsWith('image/')
+    )
+
+    if (files.length > 0) {
+      // Convert files to data URLs and add them
+      for (const file of files) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          onDrop(reader.result as string, point)
+        }
+        reader.readAsDataURL(file)
+      }
+    }
   }
 
   // Don't render until mounted to avoid SSR issues

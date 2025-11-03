@@ -204,7 +204,7 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
         duration: 0.3,
         ease: [0.4, 0, 0.2, 1]
       }}
-      className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-2xl flex flex-col"
+      className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-neutral-100/70 dark:bg-neutral-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-2xl flex flex-col"
     >
       {/* Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors">
