@@ -26,7 +26,7 @@ export function ParameterControls({
   // Safety check: if model doesn't exist, use default
   if (!modelConfig) {
     return (
-      <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
+      <div className="rounded-lg bg-destructive/10 p-4">
         <p className="text-sm text-destructive">Invalid model selected. Please refresh the page.</p>
       </div>
     );
@@ -45,7 +45,7 @@ export function ParameterControls({
           id="aspect-ratio-select"
           value={aspectRatio}
           onChange={(e) => onAspectRatioChange(e.target.value)}
-          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+          className="w-full rounded-lg bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors"
         >
           {modelConfig.aspectRatios.map((ratio) => (
             <option key={ratio} value={ratio}>
@@ -64,7 +64,7 @@ export function ParameterControls({
           id="image-size-select"
           value={imageSize}
           onChange={(e) => onImageSizeChange(e.target.value)}
-          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+          className="w-full rounded-lg bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors"
         >
           {modelConfig.imageSizes.map((size) => (
             <option key={size} value={size}>
@@ -86,7 +86,7 @@ export function ParameterControls({
           max={maxImages}
           value={numImages}
           onChange={(e) => onNumImagesChange(Math.min(maxImages, Math.max(1, parseInt(e.target.value) || 1)))}
-          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+          className="w-full rounded-lg bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors"
         />
         <p className="text-xs text-muted-foreground">
           Maximum {maxImages} image{maxImages > 1 ? "s" : ""} for {modelConfig.name}

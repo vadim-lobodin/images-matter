@@ -19,7 +19,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
         id="model-select"
         value={value}
         onChange={(e) => onChange(e.target.value as ModelKey)}
-        className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+        className="w-full rounded-lg bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors"
       >
         {availableModels.map(([key, config]) => (
           <option key={key} value={key}>

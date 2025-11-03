@@ -368,7 +368,7 @@ export default function PlaygroundPage() {
       {/* History toggle button - top right corner */}
       <Button
         onClick={() => setShowHistory(!showHistory)}
-        variant="outline"
+        variant="ghost"
         size="icon-lg"
         className="fixed top-4 right-4 z-50 bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg rounded-full"
         title={showHistory ? 'Close history' : 'Open history'}
@@ -376,6 +376,7 @@ export default function PlaygroundPage() {
         <div className="relative w-6 h-6">
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
+            initial={{ opacity: 1, rotate: 0, scale: 1 }}
             animate={{
               opacity: showHistory ? 0 : 1,
               rotate: showHistory ? 90 : 0,
@@ -387,6 +388,7 @@ export default function PlaygroundPage() {
           </motion.div>
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
+            initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
             animate={{
               opacity: showHistory ? 1 : 0,
               rotate: showHistory ? 0 : -90,

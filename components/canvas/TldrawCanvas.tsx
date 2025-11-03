@@ -1,9 +1,9 @@
 'use client'
 
-import { Tldraw, TLComponents, defaultShapeUtils } from '@tldraw/tldraw'
+import { Tldraw, TLComponents, defaultShapeUtils, useEditor, useValue } from '@tldraw/tldraw'
 import { GeneratedImageShapeUtil, GeneratedImageShape } from '@/lib/canvas/ImageShape'
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import '@tldraw/tldraw/tldraw.css'
 
 // Define custom shape utils
@@ -11,6 +11,70 @@ const customShapeUtils = [GeneratedImageShapeUtil]
 
 // Combine with default shapes
 const shapeUtils = [...defaultShapeUtils, ...customShapeUtils]
+
+// Custom Grid component with dotted pattern
+function DottedGrid() {
+  const editor = useEditor()
+  const screenBounds = useValue('screenBounds', () => editor.getViewportScreenBounds(), [editor])
+  const devicePixelRatio = useValue('dpr', () => editor.getInstanceState().devicePixelRatio, [editor])
+  const isDarkMode = useValue('isDarkMode', () => editor.user.getIsDarkMode(), [editor])
+  const camera = useValue('camera', () => editor.getCamera(), [editor])
+  const canvas = useRef<HTMLCanvasElement>(null)
+
+  const size = 100 // Grid size in pixels
+  const { x: cameraX, y: cameraY, z: zoom } = camera
+
+  useLayoutEffect(() => {
+    if (!canvas.current) return
+
+    const canvasW = screenBounds.w * devicePixelRatio
+    const canvasH = screenBounds.h * devicePixelRatio
+    canvas.current.width = canvasW
+    canvas.current.height = canvasH
+
+    const ctx = canvas.current.getContext('2d')
+    if (!ctx) return
+
+    // Fill background with zinc-900 in dark mode, zinc-100 in light mode
+    ctx.fillStyle = isDarkMode ? '#18181b' : '#f4f4f5'
+    ctx.fillRect(0, 0, canvasW, canvasH)
+
+    // Calculate grid boundaries in page space
+    const pageViewportBounds = editor.getViewportPageBounds()
+    const startPageX = Math.ceil(pageViewportBounds.minX / size) * size
+    const startPageY = Math.ceil(pageViewportBounds.minY / size) * size
+    const endPageX = Math.floor(pageViewportBounds.maxX / size) * size
+    const endPageY = Math.floor(pageViewportBounds.maxY / size) * size
+    const numRows = Math.round((endPageY - startPageY) / size)
+    const numCols = Math.round((endPageX - startPageX) / size)
+
+    // Calculate opacity based on zoom level (decrease when zooming out)
+    // At zoom 1.0, full opacity (1.0). At zoom 0.1, minimal opacity
+    const zoomOpacity = Math.max(0.05, Math.min(1, zoom))
+
+    // Set dot color based on theme with zoom-adjusted opacity
+    ctx.fillStyle = isDarkMode
+      ? `rgba(255, 255, 255, ${zoomOpacity})`
+      : `rgba(0, 0, 0, ${zoomOpacity})`
+
+    // Draw dots at grid intersections
+    for (let row = 0; row <= numRows; row++) {
+      for (let col = 0; col <= numCols; col++) {
+        const pageX = startPageX + col * size
+        const pageY = startPageY + row * size
+        const canvasX = (pageX + cameraX) * zoom * devicePixelRatio
+        const canvasY = (pageY + cameraY) * zoom * devicePixelRatio
+
+        // Draw a fixed-size dot (always 0.5px radius on screen, regardless of zoom)
+        ctx.beginPath()
+        ctx.arc(canvasX, canvasY, 0.5 * devicePixelRatio, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  }, [screenBounds, camera, size, devicePixelRatio, editor, isDarkMode])
+
+  return <canvas className="tl-grid" ref={canvas} />
+}
 
 // Custom UI components (hiding unnecessary tools)
 const components: TLComponents = {
@@ -27,6 +91,7 @@ const components: TLComponents = {
   HelpMenu: null,
   ZoomMenu: null,
   MainMenu: null,
+  Background: DottedGrid, // Add custom dotted grid as Background
 }
 
 interface TldrawCanvasProps {

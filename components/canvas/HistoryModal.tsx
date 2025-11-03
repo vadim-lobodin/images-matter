@@ -95,6 +95,7 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       setShouldRender(true)
       // Load history when modal opens
       getAllHistory()
@@ -203,12 +204,12 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
         duration: 0.3,
         ease: [0.4, 0, 0.2, 1]
       }}
-      className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] border border-border shadow-2xl flex flex-col"
+      className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-2xl flex flex-col"
     >
       {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors">
           {history.length === 0 ? (
-            <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
+            <div className="rounded-lg bg-muted/30 p-12 text-center">
               <Time size={48} className="mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">
                 Your generation history will appear here
@@ -241,7 +242,7 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
                       ease: [0.4, 0, 0.2, 1]
                     }}
                     style={{ transform: 'translateY(0)' }}
-                    className="group relative rounded-lg border border-border overflow-hidden bg-muted cursor-grab active:cursor-grabbing hover:border-ring transition-colors"
+                    className="group relative rounded-lg overflow-hidden bg-muted cursor-grab active:cursor-grabbing transition-colors"
                     onClick={() => handleSelectItem(item)}
                     draggable
                     onDragStart={(e) => handleDragStart(e, item)}
