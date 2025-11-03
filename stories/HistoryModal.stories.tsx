@@ -15,7 +15,6 @@ type Story = StoryObj<typeof HistoryModal>
 export const Closed: Story = {
   args: {
     isOpen: false,
-    onClose: () => console.log('Drawer closed'),
     onSelectImages: (images: string[]) => console.log('Selected images:', images),
   },
 }
@@ -23,7 +22,6 @@ export const Closed: Story = {
 export const Open: Story = {
   args: {
     isOpen: true,
-    onClose: () => console.log('Drawer closed'),
     onSelectImages: (images: string[]) => console.log('Selected images:', images),
   },
 }
