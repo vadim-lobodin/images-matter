@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth } from '@carbon/icons-react'
 import { PromptInput } from '@/components/playground/PromptInput'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,30 @@ interface FloatingToolbarProps {
   selectedImagesCount: number
 }
 
+const HISTORY_STORAGE_KEY = 'prompt-history'
+const MAX_HISTORY_SIZE = 50
+
+// Helper functions for localStorage
+function loadPromptHistory(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(HISTORY_STORAGE_KEY)
+    return stored ? JSON.parse(stored) : []
+  } catch (error) {
+    console.error('Failed to load prompt history:', error)
+    return []
+  }
+}
+
+function savePromptHistory(history: string[]) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history))
+  } catch (error) {
+    console.error('Failed to save prompt history:', error)
+  }
+}
+
 export function FloatingToolbar({
   prompt,
   onPromptChange,
@@ -43,9 +67,16 @@ export function FloatingToolbar({
   selectedImagesCount,
 }: FloatingToolbarProps) {
   const [isMounted, setIsMounted] = useState(false)
+  const [promptHistory, setPromptHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState<number>(-1)
+  const [temporaryPrompt, setTemporaryPrompt] = useState<string>('')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true)
+    // Load history from localStorage
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPromptHistory(loadPromptHistory())
   }, [])
 
   const buttonLabel = selectedImagesCount > 0
@@ -68,6 +99,65 @@ export function FloatingToolbar({
     onImageSizeChange(availableImageSizes[nextIndex])
   }
 
+  // Add prompt to history
+  const addToHistory = useCallback((newPrompt: string) => {
+    if (!newPrompt.trim()) return
+
+    setPromptHistory((prev) => {
+      // Remove duplicate if exists
+      const filtered = prev.filter((p) => p !== newPrompt)
+      // Add to beginning, keep max size
+      const newHistory = [newPrompt, ...filtered].slice(0, MAX_HISTORY_SIZE)
+      // Save to localStorage
+      savePromptHistory(newHistory)
+      return newHistory
+    })
+    // Reset history navigation
+    setHistoryIndex(-1)
+    setTemporaryPrompt('')
+  }, [])
+
+  // Handle arrow key navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+
+        if (promptHistory.length === 0) return
+
+        // Save current prompt when starting navigation
+        if (historyIndex === -1) {
+          setTemporaryPrompt(prompt)
+        }
+
+        const newIndex = Math.min(historyIndex + 1, promptHistory.length - 1)
+        setHistoryIndex(newIndex)
+        onPromptChange(promptHistory[newIndex])
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+
+        if (historyIndex === -1) return
+
+        if (historyIndex === 0) {
+          // Return to temporary prompt
+          setHistoryIndex(-1)
+          onPromptChange(temporaryPrompt)
+        } else {
+          const newIndex = historyIndex - 1
+          setHistoryIndex(newIndex)
+          onPromptChange(promptHistory[newIndex])
+        }
+      }
+    },
+    [promptHistory, historyIndex, prompt, temporaryPrompt, onPromptChange]
+  )
+
+  // Wrap onGenerate to save prompt to history
+  const handleGenerate = useCallback(() => {
+    addToHistory(prompt)
+    onGenerate()
+  }, [prompt, onGenerate, addToHistory])
+
   // Determine if aspect ratio is horizontal or vertical
   const [width, height] = aspectRatio.split(':').map(Number)
   const isHorizontal = width >= height
@@ -82,12 +172,15 @@ export function FloatingToolbar({
             <PromptInput
               value={prompt}
               onChange={onPromptChange}
+              onKeyDown={handleKeyDown}
               placeholder={
                 selectedImagesCount > 0
                   ? `Describe how to edit the selected image${selectedImagesCount > 1 ? 's' : ''}...`
                   : 'Describe the image you want to generate...'
               }
               maxLength={4000}
+              animationKey={historyIndex >= 0 ? `history-${historyIndex}` : undefined}
+              isMounted={isMounted}
             />
           </div>
 
@@ -124,8 +217,17 @@ export function FloatingToolbar({
               </button>
               <button
                 onClick={handleAspectRatioClick}
-                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
-                title={`Aspect ratio: ${aspectRatio}`}
+                disabled={selectedImagesCount > 0}
+                className={`flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors ${
+                  selectedImagesCount > 0
+                    ? 'opacity-40 cursor-not-allowed'
+                    : 'hover:bg-accent'
+                }`}
+                title={
+                  selectedImagesCount > 0
+                    ? 'Aspect ratio control is disabled in edit mode - Gemini matches output to input image size'
+                    : `Aspect ratio: ${aspectRatio}`
+                }
               >
                 {isHorizontal ? (
                   <DocumentHorizontal size={20} />
@@ -173,7 +275,7 @@ export function FloatingToolbar({
 
             {/* Right side: Generate/Edit button */}
             <button
-              onClick={onGenerate}
+              onClick={handleGenerate}
               disabled={!prompt.trim()}
               title={buttonLabel}
               className={cn(

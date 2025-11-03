@@ -203,6 +203,7 @@ export default function PlaygroundPage() {
           aspectRatio,
           resolution: imageSize,
           promptHistory: combinedPromptHistory,
+          sourceImageData: isEdit && selectedImages.length > 0 ? selectedImages[0].props.imageData : undefined,
         }
       )
 
@@ -227,13 +228,27 @@ export default function PlaygroundPage() {
           : baseParams
 
         return apiFunction(params as any)
-          .then((response) => {
+          .then(async (response) => {
             const imageUrls = extractImagesFromResponse(response)
             if (imageUrls.length > 0 && index < placeholderIds.length) {
+              // Load the image to get its actual dimensions
+              const img = new Image()
+              await new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve()
+                img.onerror = () => reject(new Error('Failed to load image'))
+                img.src = imageUrls[0]
+              })
+
+              // Update shape with image data and correct dimensions
               editor.updateShape<GeneratedImageShape>({
                 id: placeholderIds[index],
                 type: 'generated-image',
-                props: { imageData: imageUrls[0], isLoading: false },
+                props: {
+                  imageData: imageUrls[0],
+                  isLoading: false,
+                  w: img.naturalWidth,
+                  h: img.naturalHeight,
+                },
               })
               return imageUrls[0]
             }

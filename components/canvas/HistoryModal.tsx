@@ -96,6 +96,8 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
   const [history, setHistory] = useState<HistoryItem[] | null>(null)
   const [shouldRender, setShouldRender] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
+  const [displayLimit, setDisplayLimit] = useState(20) // Show only first 20 items initially
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const loadHistory = useCallback(() => {
     getAllHistory()
@@ -116,6 +118,8 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
       setShouldRender(true)
       // Load history when modal opens
       loadHistory()
+      // Reset display limit when opening
+      setDisplayLimit(20)
     } else if (shouldRender) {
       // Wait for exit animation before unmounting
       const timer = setTimeout(() => {
@@ -139,9 +143,30 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
       setTimeout(() => {
         loadHistory()
         setIsClearing(false)
+        setDisplayLimit(20) // Reset display limit after reload
       }, totalDuration)
     }
   }, [reloadTrigger, isOpen, loadHistory, history?.length])
+
+  // Handle scroll for infinite loading
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    if (!history || isLoadingMore) return
+
+    const target = e.currentTarget
+    const { scrollTop, scrollHeight, clientHeight } = target
+
+    // Load more when within 200px of bottom
+    if (scrollHeight - scrollTop <= clientHeight + 200) {
+      if (displayLimit < history.length) {
+        setIsLoadingMore(true)
+        // Simulate small delay for smooth UX
+        setTimeout(() => {
+          setDisplayLimit(prev => Math.min(prev + 20, history.length))
+          setIsLoadingMore(false)
+        }, 100)
+      }
+    }
+  }, [history, displayLimit, isLoadingMore])
 
   const deleteItem = async (id: string) => {
     if (!history) return
@@ -238,7 +263,10 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
       className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-neutral-100/70 dark:bg-neutral-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-2xl flex flex-col"
     >
       {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors relative">
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors relative"
+        onScroll={handleScroll}
+      >
           <AnimatePresence mode="wait">
             {history.length === 0 && !isClearing ? (
               <motion.div
@@ -263,7 +291,7 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
                 transition={{ duration: 0.2 }}
                 className="grid gap-4 grid-cols-2"
               >
-              {history.map((item, index) => {
+              {history.slice(0, displayLimit).map((item, index) => {
                 const imageUrl =
                   item.images[0]?.url ||
                   (item.images[0]?.b64_json
@@ -290,14 +318,15 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
                     }
                     transition={{
                       duration: 0.25,
-                      delay: isClearing ? index * 0.02 : isOpen ? index * 0.02 : 0,
+                      // Cap animation delay at 20 items to prevent excessive stagger
+                      delay: isClearing ? Math.min(index, 20) * 0.02 : isOpen ? Math.min(index, 20) * 0.02 : 0,
                       ease: [0.4, 0, 0.2, 1]
                     }}
                     style={{ transform: 'translateY(0)' }}
                     className="group relative rounded-lg overflow-hidden bg-muted cursor-grab active:cursor-grabbing transition-colors"
                     onClick={() => handleSelectItem(item)}
                     draggable
-                    onDragStart={(e) => handleDragStart(e, item)}
+                    onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, item)}
                   >
                     <div className="relative aspect-square w-full">
                       <Image

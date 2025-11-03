@@ -2,6 +2,7 @@
 
 import { Tldraw, TLComponents, defaultShapeUtils, useEditor, useValue } from '@tldraw/tldraw'
 import { GeneratedImageShapeUtil, GeneratedImageShape } from '@/lib/canvas/ImageShape'
+import { ImageQuickActions } from './ImageQuickActions'
 import { useTheme } from 'next-themes'
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import '@tldraw/tldraw/tldraw.css'
@@ -80,7 +81,7 @@ function DottedGrid() {
 const components: TLComponents = {
   Toolbar: null, // Hide default toolbar
   KeyboardShortcutsDialog: null,
-  QuickActions: null,
+  QuickActions: ImageQuickActions, // Custom quick actions with download
   HelperButtons: null,
   DebugPanel: null,
   MenuPanel: null,

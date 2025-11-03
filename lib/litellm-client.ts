@@ -35,6 +35,7 @@ export interface GeminiImageResponse {
 async function makeLiteLLMRequest(
   apiKey: string,
   baseURL: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requestBody: any,
   debugLabel: string = 'LiteLLM'
 ): Promise<GeminiImageResponse> {
@@ -105,11 +106,14 @@ async function makeLiteLLMRequest(
 // Helper function to build request body with common parameters
 function buildRequestBody(
   model: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: string | any[],
   numImages: number,
   aspectRatio?: string,
   imageSize?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model,
     messages: [
@@ -122,12 +126,31 @@ function buildRequestBody(
     n: numImages,
   };
 
+  // Build generation config for Vertex AI image parameters
+  // Using the exact format from Vertex AI documentation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generationConfig: any = {};
+
   if (aspectRatio) {
-    requestBody.aspectRatio = aspectRatio;
+    generationConfig.aspect_ratio = aspectRatio;
   }
 
   if (imageSize) {
-    requestBody.imageSize = imageSize;
+    // Convert "1K" to 1024, "2K" to 2048 for imageSize parameter
+    const sizeMap: { [key: string]: number } = {
+      '1K': 1024,
+      '2K': 2048
+    };
+    if (sizeMap[imageSize]) {
+      generationConfig.image_size = sizeMap[imageSize];
+    }
+  }
+
+  // Add generation config if we have parameters
+  // Try both naming conventions for better compatibility
+  if (Object.keys(generationConfig).length > 0) {
+    requestBody.generationConfig = generationConfig;
+    requestBody.generation_config = generationConfig;
   }
 
   return requestBody;
@@ -171,6 +194,7 @@ export async function editGeminiImage(
   }
 
   // Build multimodal content array with text and images
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content: any[] = [
     {
       type: "text",

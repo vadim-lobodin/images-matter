@@ -16,6 +16,7 @@ export type GeneratedImageShape = TLBaseShape<
     w: number
     h: number
     imageData: string // base64 data URL (empty when loading)
+    sourceImageData: string // stores original image for blurred backdrop during regeneration
     prompt: string
     model: string
     timestamp: number
@@ -32,6 +33,7 @@ export const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
   w: T.number,
   h: T.number,
   imageData: T.string,
+  sourceImageData: T.string,
   prompt: T.string,
   model: T.string,
   timestamp: T.number,
@@ -52,6 +54,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
       w: 512,
       h: 512,
       imageData: '',
+      sourceImageData: '',
       prompt: '',
       model: '',
       timestamp: Date.now(),
@@ -83,7 +86,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
         }}
       >
         {isLoading ? (
-          // Loading state with pulsating background
+          // Loading state with blurred source image backdrop
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{
@@ -97,6 +100,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
               borderRadius: '20px',
               overflow: 'hidden',
               position: 'relative',
+              contain: 'layout style paint', // Optimize rendering
             }}
           >
             {/* Breathing background */}
@@ -114,9 +118,28 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
                 position: 'absolute',
                 inset: 0,
                 backgroundColor: 'var(--loading-bg)',
+                willChange: 'opacity, transform', // Hint for GPU acceleration
+                transform: 'translateZ(0)', // Force GPU layer
               }}
-              className="dark:[--loading-bg:#27272a] [--loading-bg:#f4f4f5]"
+              className="dark:[--loading-bg:#18181b] [--loading-bg:#d4d4d8]"
             />
+            {/* Blurred source image that blends with background */}
+            {shape.props.sourceImageData && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundImage: `url(${shape.props.sourceImageData})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(50px) saturate(0)',
+                  transform: 'scale3d(1.2, 1.2, 1) translateZ(0)', // GPU-accelerated scale
+                  mixBlendMode: 'soft-light',
+                  opacity: 0.4,
+                  willChange: 'transform', // Hint for optimization
+                }}
+              />
+            )}
           </motion.div>
         ) : (
           // Image loaded state with conditional enter animation
@@ -171,7 +194,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'cover',
+                objectFit: 'contain',
                 borderRadius: '20px',
                 userSelect: 'none',
                 pointerEvents: 'none',

@@ -319,6 +319,7 @@ export async function addImageToCanvas(
       w: dimensions.w,
       h: dimensions.h,
       imageData,
+      sourceImageData: '', // New images don't have a source
       prompt: metadata?.prompt || '',
       model: metadata?.model || '',
       timestamp: Date.now(),
@@ -346,6 +347,7 @@ export function createLoadingPlaceholders(
     aspectRatio: string
     resolution: string
     promptHistory?: string[] // optional: history of prompts from source images
+    sourceImageData?: string // optional: source image for blurred backdrop during regeneration
   }
 ): string[] {
   const dimensions = getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution)
@@ -367,6 +369,7 @@ export function createLoadingPlaceholders(
         w: dimensions.w,
         h: dimensions.h,
         imageData: '',
+        sourceImageData: metadata.sourceImageData || '',
         prompt: metadata.prompt,
         model: metadata.model,
         timestamp: Date.now(),
@@ -392,6 +395,7 @@ export function createLoadingPlaceholders(
           w: dimensions.w,
           h: dimensions.h,
           imageData: '',
+          sourceImageData: metadata.sourceImageData || '',
           prompt: metadata.prompt,
           model: metadata.model,
           timestamp: Date.now(),
@@ -425,6 +429,7 @@ export function createLoadingPlaceholders(
           w: dimensions.w,
           h: dimensions.h,
           imageData: '',
+          sourceImageData: metadata.sourceImageData || '',
           prompt: metadata.prompt,
           model: metadata.model,
           timestamp: Date.now(),
@@ -461,6 +466,7 @@ export function createLoadingPlaceholders(
           w: dimensions.w,
           h: dimensions.h,
           imageData: '',
+          sourceImageData: metadata.sourceImageData || '',
           prompt: metadata.prompt,
           model: metadata.model,
           timestamp: Date.now(),
