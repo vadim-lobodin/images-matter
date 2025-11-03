@@ -36,8 +36,7 @@ async function makeLiteLLMRequest(
   apiKey: string,
   baseURL: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  requestBody: any,
-  debugLabel: string = 'LiteLLM'
+  requestBody: any
 ): Promise<GeminiImageResponse> {
   if (!apiKey || !baseURL) {
     throw new Error(
@@ -62,14 +61,29 @@ async function makeLiteLLMRequest(
     });
   } catch (error) {
     console.error('Network error:', error);
-    throw new Error(
-      "❌ Network Connection Failed\n\n" +
-      "Cannot reach LiteLLM proxy. Most likely you are NOT connected to JetBrains VPN.\n\n" +
-      "Please:\n" +
-      "1. Connect to JetBrains Team VPN\n" +
-      "2. Verify proxy URL in Settings\n" +
-      "3. Check your network connection"
-    );
+
+    // Check if using JetBrains proxy
+    const isJetBrainsProxy = baseURL.includes('jb.gg') || baseURL.includes('jetbrains');
+
+    if (isJetBrainsProxy) {
+      throw new Error(
+        "❌ Network Connection Failed\n\n" +
+        "Cannot reach LiteLLM proxy. Most likely you are NOT connected to JetBrains VPN.\n\n" +
+        "Please:\n" +
+        "1. Connect to JetBrains Team VPN\n" +
+        "2. Verify proxy URL in Settings\n" +
+        "3. Check your network connection"
+      );
+    } else {
+      throw new Error(
+        "❌ Network Connection Failed\n\n" +
+        "Cannot reach the API endpoint.\n\n" +
+        "Please:\n" +
+        "1. Verify your API URL in Settings\n" +
+        "2. Check your network connection\n" +
+        "3. Ensure your API key is valid"
+      );
+    }
   }
 
   // Handle error responses
@@ -158,7 +172,7 @@ export async function generateGeminiImage(
 
   const requestBody = buildRequestBody(model, prompt, numImages, aspectRatio, imageSize);
 
-  return makeLiteLLMRequest(apiKey, baseURL, requestBody, 'LiteLLM Generate');
+  return makeLiteLLMRequest(apiKey, baseURL, requestBody);
 }
 
 export async function editGeminiImage(
@@ -205,5 +219,5 @@ export async function editGeminiImage(
 
   const requestBody = buildRequestBody(model, content, numImages, aspectRatio, imageSize);
 
-  return makeLiteLLMRequest(apiKey, baseURL, requestBody, 'LiteLLM Edit');
+  return makeLiteLLMRequest(apiKey, baseURL, requestBody);
 }

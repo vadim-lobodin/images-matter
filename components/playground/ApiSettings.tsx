@@ -140,7 +140,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Get your API key from{" "}
+              JetBrains proxy:{" "}
               <a
                 href="https://litellm.labs.jb.gg/"
                 target="_blank"
@@ -149,7 +149,9 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
               >
                 https://litellm.labs.jb.gg/
               </a>
-              {" "}(VPN or JetBrains Team WiFi required)
+              {" "}(requires VPN/WiFi)
+              <br />
+              Or use your own LiteLLM proxy / Gemini API key
             </p>
           </div>
 
