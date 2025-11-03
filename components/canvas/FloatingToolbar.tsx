@@ -88,13 +88,13 @@ export function FloatingToolbar({
   const availableImageSizes = modelConfig?.imageSizes || ['1K', '2K']
 
   const handleAspectRatioClick = () => {
-    const currentIndex = availableAspectRatios.indexOf(aspectRatio)
+    const currentIndex = availableAspectRatios.indexOf(aspectRatio as any)
     const nextIndex = (currentIndex + 1) % availableAspectRatios.length
     onAspectRatioChange(availableAspectRatios[nextIndex])
   }
 
   const handleImageSizeClick = () => {
-    const currentIndex = availableImageSizes.indexOf(imageSize)
+    const currentIndex = availableImageSizes.indexOf(imageSize as any)
     const nextIndex = (currentIndex + 1) % availableImageSizes.length
     onImageSizeChange(availableImageSizes[nextIndex])
   }
