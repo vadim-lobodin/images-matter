@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, AddFilled, Settings, ArrowUp } from '@carbon/icons-react'
+import { AddFilled, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth } from '@carbon/icons-react'
 import { PromptInput } from '@/components/playground/PromptInput'
-import { ModelSelector } from '@/components/playground/ModelSelector'
-import { ParameterControls } from '@/components/playground/ParameterControls'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { cn } from '@/lib/utils'
-import { type ModelKey } from '@/lib/models'
+import { type ModelKey, AVAILABLE_MODELS } from '@/lib/models'
+import * as motion from 'motion/react-client'
 
 interface FloatingToolbarProps {
   prompt: string
@@ -44,11 +42,29 @@ export function FloatingToolbar({
   onOpenSettings,
   selectedImagesCount,
 }: FloatingToolbarProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
   const buttonLabel = selectedImagesCount > 0
     ? `Edit ${selectedImagesCount} image${selectedImagesCount > 1 ? 's' : ''}`
     : 'Generate'
+
+  const modelConfig = AVAILABLE_MODELS[model]
+  const availableAspectRatios = modelConfig?.aspectRatios || ['1:1']
+  const availableImageSizes = modelConfig?.imageSizes || ['1K', '2K']
+
+  const handleAspectRatioClick = () => {
+    const currentIndex = availableAspectRatios.indexOf(aspectRatio)
+    const nextIndex = (currentIndex + 1) % availableAspectRatios.length
+    onAspectRatioChange(availableAspectRatios[nextIndex])
+  }
+
+  const handleImageSizeClick = () => {
+    const currentIndex = availableImageSizes.indexOf(imageSize)
+    const nextIndex = (currentIndex + 1) % availableImageSizes.length
+    onImageSizeChange(availableImageSizes[nextIndex])
+  }
+
+  // Determine if aspect ratio is horizontal or vertical
+  const [width, height] = aspectRatio.split(':').map(Number)
+  const isHorizontal = width >= height
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
@@ -80,24 +96,70 @@ export function FloatingToolbar({
               >
                 <AddFilled size={20} />
               </button>
-              <ThemeToggle />
+              <button
+                onClick={() => onNumImagesChange(numImages >= 4 ? 1 : numImages + 1)}
+                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
+                title="Number of images to generate"
+              >
+                <Image size={20} />
+                <span className="text-sm font-medium tabular-nums inline-block overflow-hidden">
+                  <motion.span
+                    key={numImages}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="inline-block"
+                  >
+                    {numImages}
+                  </motion.span>
+                </span>
+              </button>
+              <button
+                onClick={handleAspectRatioClick}
+                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
+                title={`Aspect ratio: ${aspectRatio}`}
+              >
+                {isHorizontal ? (
+                  <DocumentHorizontal size={20} />
+                ) : (
+                  <DocumentVertical size={20} />
+                )}
+                <span className="text-sm font-medium inline-block overflow-hidden">
+                  <motion.span
+                    key={aspectRatio}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="inline-block"
+                  >
+                    {aspectRatio}
+                  </motion.span>
+                </span>
+              </button>
+              <button
+                onClick={handleImageSizeClick}
+                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
+                title={`Resolution: ${imageSize}`}
+              >
+                <FitToWidth size={20} />
+                <span className="text-sm font-medium inline-block overflow-hidden">
+                  <motion.span
+                    key={imageSize}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="inline-block"
+                  >
+                    {imageSize}
+                  </motion.span>
+                </span>
+              </button>
               <button
                 onClick={onOpenSettings}
                 className="p-2 rounded-lg hover:bg-accent transition-colors"
                 title="Settings"
               >
                 <Settings size={20} />
-              </button>
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title={isExpanded ? 'Collapse settings' : 'Expand settings'}
-              >
-                {isExpanded ? (
-                  <ChevronDown size={20} />
-                ) : (
-                  <ChevronUp size={20} />
-                )}
               </button>
             </div>
 
@@ -116,28 +178,6 @@ export function FloatingToolbar({
             </button>
           </div>
         </div>
-
-        {/* Expanded view - parameters */}
-        {isExpanded && (
-          <div className="border-t border-border p-4 space-y-4 animate-in slide-in-from-bottom-2">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-2">Model</label>
-                <ModelSelector value={model} onChange={onModelChange} />
-              </div>
-            </div>
-
-            <ParameterControls
-              model={model}
-              aspectRatio={aspectRatio}
-              onAspectRatioChange={onAspectRatioChange}
-              imageSize={imageSize}
-              onImageSizeChange={onImageSizeChange}
-              numImages={numImages}
-              onNumImagesChange={onNumImagesChange}
-            />
-          </div>
-        )}
       </div>
     </div>
   )

@@ -6,8 +6,7 @@ import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/playground/ApiSettings'
 import { SelectionBadges } from '@/components/canvas/SelectionBadges'
-import { RecentlyViewed, CloseLarge } from '@carbon/icons-react'
-import { Button } from '@/components/ui/button'
+import { Row, CloseLarge } from '@carbon/icons-react'
 import * as motion from 'motion/react-client'
 import { type ModelKey } from '@/lib/models'
 import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
@@ -49,7 +48,7 @@ export default function PlaygroundPage() {
   const [selectionIdMap, setSelectionIdMap] = useState<Map<TLShapeId, number>>(EMPTY_MAP)
   const [model, setModel] = useState<ModelKey>('vertex_ai/gemini-2.5-flash-image')
   const [prompt, setPrompt] = useState('')
-  const [aspectRatio, setAspectRatio] = useState('1:1')
+  const [aspectRatio, setAspectRatio] = useState('16:9')
   const [imageSize, setImageSize] = useState('1K')
   const [numImages, setNumImages] = useState(1)
   const [selectedImages, setSelectedImages] = useState<GeneratedImageShape[]>([])
@@ -373,14 +372,12 @@ export default function PlaygroundPage() {
       />
 
       {/* History toggle button - top right corner */}
-      <Button
+      <button
         onClick={() => setShowHistory(!showHistory)}
-        variant="ghost"
-        size="icon-lg"
-        className="fixed top-4 right-4 z-50 bg-neutral-100/70 dark:bg-neutral-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-lg rounded-full"
+        className="fixed top-4 right-4 z-50 p-2 rounded-lg hover:bg-accent transition-colors"
         title={showHistory ? 'Close history' : 'Open history'}
       >
-        <div className="relative w-6 h-6">
+        <div className="relative w-5 h-5">
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
             initial={{ opacity: 1, rotate: 0, scale: 1 }}
@@ -391,7 +388,7 @@ export default function PlaygroundPage() {
             }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
-            <RecentlyViewed size={24} />
+            <Row size={20} />
           </motion.div>
           <motion.div
             className="absolute inset-0 flex items-center justify-center"
@@ -403,10 +400,10 @@ export default function PlaygroundPage() {
             }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
-            <CloseLarge size={24} />
+            <CloseLarge size={20} />
           </motion.div>
         </div>
-      </Button>
+      </button>
 
       {/* Main Canvas */}
       <TldrawCanvas
