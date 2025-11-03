@@ -49,9 +49,6 @@ async function makeLiteLLMRequest(
   const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
   const url = `${cleanBaseURL}/v1/chat/completions`;
 
-  console.log(`Calling ${debugLabel}:`, url);
-  console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
   // Make network request
   let response;
   try {
@@ -78,7 +75,6 @@ async function makeLiteLLMRequest(
   // Handle error responses
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    console.log('Error response:', errorData);
 
     let errorMessage = errorData.error?.message || `API error: ${response.status} ${response.statusText}`;
 
@@ -99,7 +95,6 @@ async function makeLiteLLMRequest(
 
   // Parse and return success response
   const result = await response.json();
-  console.log('Success response:', JSON.stringify(result, null, 2));
   return result;
 }
 

@@ -569,20 +569,14 @@ export async function addImagesToCanvas(
  * Handles both custom generated-image shapes and standard tldraw image shapes
  */
 export async function extractImageDataFromShapes(shapes: any[], editor?: Editor): Promise<string[]> {
-  console.log('Extracting image data from', shapes.length, 'shapes')
-
   const results = await Promise.all(
     shapes.map(async (shape, index) => {
-      console.log(`Shape ${index}:`, { type: shape.type, id: shape.id })
-
       if (shape.type === 'generated-image') {
         // Custom shape with direct imageData
-        console.log(`Shape ${index}: Using direct imageData`)
         return shape.props.imageData
       } else if (shape.type === 'image' && editor) {
         // Standard tldraw image shape from dropped files
         try {
-          console.log(`Shape ${index}: Exporting dropped image using editor methods`)
 
           // Try to get SVG and convert to image
           const svg = await editor.getSvgString([shape.id], {
@@ -590,7 +584,6 @@ export async function extractImageDataFromShapes(shapes: any[], editor?: Editor)
           })
 
           if (svg) {
-            console.log(`Shape ${index}: Got SVG, converting to PNG`)
             // Create a canvas to render the SVG
             const blob = await new Promise<Blob | null>((resolve) => {
               const img = new Image()
@@ -624,11 +617,9 @@ export async function extractImageDataFromShapes(shapes: any[], editor?: Editor)
             })
 
             if (blob) {
-              console.log(`Shape ${index}: Converted to blob, size:`, blob.size)
               return new Promise<string>((resolve, reject) => {
                 const reader = new FileReader()
                 reader.onloadend = () => {
-                  console.log(`Shape ${index}: Blob converted to data URL`)
                   resolve(reader.result as string)
                 }
                 reader.onerror = reject
@@ -640,15 +631,12 @@ export async function extractImageDataFromShapes(shapes: any[], editor?: Editor)
           console.error(`Shape ${index}: Failed to export dropped image:`, error)
         }
 
-        console.log(`Shape ${index}: Could not export dropped image`)
         return null
       }
-      console.log(`Shape ${index}: Could not extract image data`)
       return null
     })
   )
 
   const filtered = results.filter((data): data is string => data !== null)
-  console.log('Extracted', filtered.length, 'valid image data URLs')
   return filtered
 }
