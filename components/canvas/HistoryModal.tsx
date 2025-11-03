@@ -1,9 +1,10 @@
 'use client'
 
-import { Time, TrashCan } from '@carbon/icons-react'
-import { useEffect, useState } from 'react'
+import { CloudRegistry, TrashCan } from '@carbon/icons-react'
+import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 import * as motion from 'motion/react-client'
+import { AnimatePresence } from 'motion/react'
 
 export interface HistoryItem {
   id: string
@@ -17,6 +18,8 @@ export interface HistoryItem {
 interface HistoryModalProps {
   isOpen: boolean
   onSelectImages: (images: string[]) => void
+  onHistoryCountChange?: (count: number) => void
+  reloadTrigger?: number
 }
 
 // IndexedDB helper functions
@@ -89,21 +92,30 @@ async function clearAllHistory(): Promise<void> {
   })
 }
 
-export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
+export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, reloadTrigger }: HistoryModalProps) {
   const [history, setHistory] = useState<HistoryItem[] | null>(null)
   const [shouldRender, setShouldRender] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
+
+  const loadHistory = useCallback(() => {
+    getAllHistory()
+      .then((items) => {
+        setHistory(items)
+        onHistoryCountChange?.(items.length)
+      })
+      .catch((error) => {
+        console.error('Failed to load history:', error)
+        setHistory([]) // Set empty array on error so panel still shows
+        onHistoryCountChange?.(0)
+      })
+  }, [onHistoryCountChange])
 
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       setShouldRender(true)
       // Load history when modal opens
-      getAllHistory()
-        .then(setHistory)
-        .catch((error) => {
-          console.error('Failed to load history:', error)
-          setHistory([]) // Set empty array on error so panel still shows
-        })
+      loadHistory()
     } else if (shouldRender) {
       // Wait for exit animation before unmounting
       const timer = setTimeout(() => {
@@ -112,14 +124,33 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
       }, 300) // Match panel exit duration
       return () => clearTimeout(timer)
     }
-  }, [isOpen, shouldRender])
+  }, [isOpen, shouldRender, loadHistory])
+
+  // Reload history when reloadTrigger changes (e.g., after clear all)
+  useEffect(() => {
+    if (isOpen && reloadTrigger !== undefined && reloadTrigger > 0) {
+      // Trigger clearing animation
+      setIsClearing(true)
+      // Wait for individual item animations and grid exit to complete
+      const itemCount = history?.length || 0
+      const itemExitDuration = 250 + itemCount * 20 // Individual items fade out
+      const gridExitDuration = 200 // Grid container exit
+      const totalDuration = itemExitDuration + gridExitDuration
+      setTimeout(() => {
+        loadHistory()
+        setIsClearing(false)
+      }, totalDuration)
+    }
+  }, [reloadTrigger, isOpen, loadHistory, history?.length])
 
   const deleteItem = async (id: string) => {
     if (!history) return
     await deleteHistoryItem(id)
     const newHistory = history.filter((item) => item.id !== id)
     setHistory(newHistory)
+    onHistoryCountChange?.(newHistory.length)
   }
+
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)
@@ -207,16 +238,31 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
       className="fixed top-16 right-4 bottom-4 w-full sm:w-80 z-40 rounded-2xl bg-neutral-100/70 dark:bg-neutral-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] shadow-2xl flex flex-col"
     >
       {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors">
-          {history.length === 0 ? (
-            <div className="rounded-lg bg-muted/30 p-12 text-center">
-              <Time size={48} className="mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">
-                Your generation history will appear here
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 grid-cols-2">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:transition-colors relative">
+          <AnimatePresence mode="wait">
+            {history.length === 0 && !isClearing ? (
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col items-center justify-center h-full text-center absolute inset-0"
+              >
+                <CloudRegistry size={24} className="text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Your generation history will appear here
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="grid gap-4 grid-cols-2"
+              >
               {history.map((item, index) => {
                 const imageUrl =
                   item.images[0]?.url ||
@@ -234,11 +280,17 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
                 return (
                   <motion.div
                     key={item.id}
-                    initial={{ opacity: 0 }}
-                    animate={isOpen ? { opacity: 1 } : { opacity: 0 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={
+                      isClearing
+                        ? { opacity: 0, scale: 0.9 }
+                        : isOpen
+                        ? { opacity: 1, scale: 1 }
+                        : { opacity: 0, scale: 0.9 }
+                    }
                     transition={{
                       duration: 0.25,
-                      delay: isOpen ? 0.2 + index * 0.02 : 0,
+                      delay: isClearing ? index * 0.02 : isOpen ? index * 0.02 : 0,
                       ease: [0.4, 0, 0.2, 1]
                     }}
                     style={{ transform: 'translateY(0)' }}
@@ -285,12 +337,16 @@ export function HistoryModal({ isOpen, onSelectImages }: HistoryModalProps) {
                   </motion.div>
                 )
               })}
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
       </div>
     </motion.div>
   )
 }
+
+// Export clearAllHistory helper for parent components
+export { clearAllHistory }
 
 // Helper function to add item to history (to be called from main page)
 export async function addToHistory(item: Omit<HistoryItem, 'id' | 'timestamp'>) {

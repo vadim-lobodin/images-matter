@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
-import { HistoryModal, addToHistory } from '@/components/canvas/HistoryModal'
+import { HistoryModal, addToHistory, clearAllHistory } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/playground/ApiSettings'
 import { SelectionBadges } from '@/components/canvas/SelectionBadges'
 import { Row, CloseLarge } from '@carbon/icons-react'
@@ -56,8 +56,44 @@ export default function PlaygroundPage() {
   const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [historyCount, setHistoryCount] = useState(0)
+  const [historyReloadTrigger, setHistoryReloadTrigger] = useState(0)
   const [helpersLoaded, setHelpersLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedModel = localStorage.getItem('playground_model')
+      if (savedModel) setModel(savedModel as ModelKey)
+
+      const savedAspectRatio = localStorage.getItem('playground_aspectRatio')
+      if (savedAspectRatio) setAspectRatio(savedAspectRatio)
+
+      const savedImageSize = localStorage.getItem('playground_imageSize')
+      if (savedImageSize) setImageSize(savedImageSize)
+
+      const savedNumImages = localStorage.getItem('playground_numImages')
+      if (savedNumImages) setNumImages(parseInt(savedNumImages))
+    }
+  }, [])
+
+  // Save settings to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('playground_model', model)
+  }, [model])
+
+  useEffect(() => {
+    localStorage.setItem('playground_aspectRatio', aspectRatio)
+  }, [aspectRatio])
+
+  useEffect(() => {
+    localStorage.setItem('playground_imageSize', imageSize)
+  }, [imageSize])
+
+  useEffect(() => {
+    localStorage.setItem('playground_numImages', numImages.toString())
+  }, [numImages])
 
   // Load canvas helpers dynamically on client side only
   useEffect(() => {
@@ -371,6 +407,21 @@ export default function PlaygroundPage() {
         className="fixed top-8 left-8 z-50 h-4 dark:invert-0 invert"
       />
 
+      {/* Clear all history button - only visible when history is open and has items */}
+      {showHistory && historyCount > 0 && (
+        <button
+          onClick={async () => {
+            await clearAllHistory()
+            setHistoryCount(0)
+            setHistoryReloadTrigger(prev => prev + 1)
+          }}
+          className="fixed top-4 right-16 z-50 px-3 py-2 rounded-lg hover:bg-accent transition-colors text-sm text-muted-foreground hover:text-foreground"
+          title="Clear all history"
+        >
+          Clear all
+        </button>
+      )}
+
       {/* History toggle button - top right corner */}
       <button
         onClick={() => setShowHistory(!showHistory)}
@@ -477,6 +528,8 @@ export default function PlaygroundPage() {
       <HistoryModal
         isOpen={showHistory}
         onSelectImages={handleHistoryImagesSelected}
+        onHistoryCountChange={setHistoryCount}
+        reloadTrigger={historyReloadTrigger}
       />
 
       <ApiSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { AddFilled, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth } from '@carbon/icons-react'
+import { useState, useEffect } from 'react'
+import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth } from '@carbon/icons-react'
 import { PromptInput } from '@/components/playground/PromptInput'
 import { cn } from '@/lib/utils'
 import { type ModelKey, AVAILABLE_MODELS } from '@/lib/models'
@@ -42,6 +42,12 @@ export function FloatingToolbar({
   onOpenSettings,
   selectedImagesCount,
 }: FloatingToolbarProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const buttonLabel = selectedImagesCount > 0
     ? `Edit ${selectedImagesCount} image${selectedImagesCount > 1 ? 's' : ''}`
     : 'Generate'
@@ -89,13 +95,15 @@ export function FloatingToolbar({
           <div className="flex items-center justify-between gap-2 px-4 pt-3">
             {/* Left side action buttons */}
             <div className="flex items-center gap-2">
-              <button
+              <motion.button
                 onClick={onOpenUpload}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                className="p-2 rounded-lg bg-accent hover:brightness-110 transition-all shadow-sm"
                 title="Upload images"
+                whileHover={{ scale: 1.15 }}
+                transition={{ duration: 0.1, ease: [0.4, 0, 0.2, 1] }}
               >
-                <AddFilled size={20} />
-              </button>
+                <AddLarge size={20} />
+              </motion.button>
               <button
                 onClick={() => onNumImagesChange(numImages >= 4 ? 1 : numImages + 1)}
                 className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
@@ -105,7 +113,7 @@ export function FloatingToolbar({
                 <span className="text-sm font-medium tabular-nums inline-block overflow-hidden">
                   <motion.span
                     key={numImages}
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={isMounted ? { y: 20, opacity: 0 } : false}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     className="inline-block"
@@ -127,7 +135,7 @@ export function FloatingToolbar({
                 <span className="text-sm font-medium inline-block overflow-hidden">
                   <motion.span
                     key={aspectRatio}
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={isMounted ? { y: 20, opacity: 0 } : false}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     className="inline-block"
@@ -145,7 +153,7 @@ export function FloatingToolbar({
                 <span className="text-sm font-medium inline-block overflow-hidden">
                   <motion.span
                     key={imageSize}
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={isMounted ? { y: 20, opacity: 0 } : false}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     className="inline-block"

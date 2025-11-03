@@ -83,7 +83,7 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
         }}
       >
         {isLoading ? (
-          // Loading state with gray background and pulsating effect
+          // Loading state with pulsating background
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{
@@ -94,78 +94,59 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
             style={{
               width: '100%',
               height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
               borderRadius: '20px',
               overflow: 'hidden',
+              position: 'relative',
             }}
           >
-            {/* Pulsating background */}
+            {/* Breathing background */}
             <motion.div
               animate={{
-                opacity: [0.3, 0.6, 0.3],
+                opacity: [0.6, 0.75, 0.9, 0.75, 0.6],
+                scale: [1, 1.01, 1.02, 1.01, 1],
               }}
               transition={{
-                duration: 2,
+                duration: 1.5,
                 repeat: Infinity,
-                ease: 'easeInOut',
+                ease: [0.4, 0.0, 0.6, 1.0],
               }}
               style={{
                 position: 'absolute',
                 inset: 0,
-                backgroundColor: 'var(--loading-card-bg, #e4e4e7)',
-                borderRadius: '20px',
+                backgroundColor: 'var(--loading-bg)',
               }}
-              className="dark:[--loading-card-bg:#52525b] [--loading-card-bg:#e4e4e7]"
+              className="dark:[--loading-bg:#27272a] [--loading-bg:#f4f4f5]"
             />
-
-            {/* Content */}
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  border: '3px solid var(--spinner-light, rgba(0, 0, 0, 0.2))',
-                  borderTop: '3px solid var(--spinner-dark, rgba(0, 0, 0, 0.7))',
-                  borderRadius: '50%',
-                }}
-                className="dark:[--spinner-light:rgba(255,255,255,0.3)] dark:[--spinner-dark:rgba(255,255,255,0.9)] [--spinner-light:rgba(0,0,0,0.2)] [--spinner-dark:rgba(0,0,0,0.7)]"
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--text-color, rgba(0, 0, 0, 0.7))',
-                  fontWeight: '500',
-                }}
-                className="dark:[--text-color:rgba(255,255,255,0.9)] [--text-color:rgba(0,0,0,0.7)]"
-              >
-                Generating...
-              </motion.div>
-            </div>
           </motion.div>
         ) : (
           // Image loaded state with conditional enter animation
           <motion.div
             key={`${shape.id}-${shouldAnimate ? 'animated' : 'static'}`}
-            initial={shouldAnimate ? { opacity: 0, scale: 0.8 } : { opacity: 1, scale: 1 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={shouldAnimate ? {
+              opacity: 0,
+              scale: 0.9,
+              y: 20,
+              filter: 'blur(10px)'
+            } : {
+              opacity: 1,
+              scale: 1,
+              y: 0,
+              filter: 'blur(0px)'
+            }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              y: 0,
+              filter: 'blur(0px)'
+            }}
             transition={
               shouldAnimate
                 ? {
-                    duration: 0.5,
-                    opacity: { duration: 0.3 },
-                    scale: { type: 'spring', stiffness: 260, damping: 20 },
+                    duration: 0.6,
+                    opacity: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+                    scale: { type: 'spring', stiffness: 200, damping: 25, duration: 0.6 },
+                    y: { type: 'spring', stiffness: 200, damping: 25, duration: 0.6 },
+                    filter: { duration: 0.4, ease: [0.4, 0, 0.2, 1] }
                   }
                 : { duration: 0 }
             }

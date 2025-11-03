@@ -9,20 +9,26 @@ interface SelectionBadgesProps {
 }
 
 // Constants for badge positioning
-const BADGE_OFFSET_X = 40
-const BADGE_OFFSET_Y = 8
+const BADGE_SIZE = 32
 
 // Helper function to calculate badge position for a shape
 function calculateBadgePosition(editor: Editor, shapeId: TLShapeId): { x: number; y: number } | null {
   const bounds = editor.getShapePageBounds(shapeId)
   if (!bounds) return null
 
-  // Calculate page position for badge (top-right corner with offset)
-  const pageX = bounds.x + bounds.w - BADGE_OFFSET_X
-  const pageY = bounds.y + BADGE_OFFSET_Y
+  // Calculate page position for badge (centered in top-right corner)
+  // Position the center of the badge at the top-right corner
+  const pageX = bounds.x + bounds.w
+  const pageY = bounds.y
 
-  // Convert page coordinates to screen coordinates using tldraw's method
-  return editor.pageToScreen({ x: pageX, y: pageY })
+  // Convert page coordinates to screen coordinates
+  const screenPos = editor.pageToScreen({ x: pageX, y: pageY })
+
+  // Adjust to center the badge on the corner (offset by half the badge size)
+  return {
+    x: screenPos.x - BADGE_SIZE / 2,
+    y: screenPos.y - BADGE_SIZE / 2
+  }
 }
 
 // Helper function to calculate all badges for current selection
@@ -93,16 +99,17 @@ export function SelectionBadges({ editor, selectionIdMap }: SelectionBadgesProps
             width: '32px',
             height: '32px',
             borderRadius: '50%',
-            backgroundColor: 'var(--badge-bg, #3b82f6)',
-            color: 'var(--badge-text, #ffffff)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(18px) saturate(1.8)',
+            WebkitBackdropFilter: 'blur(18px) saturate(1.8)',
+            color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '14px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 8px var(--badge-shadow, rgba(0, 0, 0, 0.2))',
+            fontWeight: '400',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
           }}
-          className="dark:[--badge-bg:#3b82f6] dark:[--badge-text:#ffffff] dark:[--badge-shadow:rgba(0,0,0,0.4)] [--badge-bg:#3b82f6] [--badge-text:#ffffff] [--badge-shadow:rgba(0,0,0,0.2)]"
         >
           {badge.number}
         </div>

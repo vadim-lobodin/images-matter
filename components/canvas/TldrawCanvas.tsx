@@ -21,7 +21,7 @@ function DottedGrid() {
   const camera = useValue('camera', () => editor.getCamera(), [editor])
   const canvas = useRef<HTMLCanvasElement>(null)
 
-  const size = 100 // Grid size in pixels
+  const size = 70 // Grid size in pixels
   const { x: cameraX, y: cameraY, z: zoom } = camera
 
   useLayoutEffect(() => {
@@ -35,8 +35,8 @@ function DottedGrid() {
     const ctx = canvas.current.getContext('2d')
     if (!ctx) return
 
-    // Fill background with neutral-900 in dark mode, neutral-100 in light mode
-    ctx.fillStyle = isDarkMode ? '#171717' : '#f5f5f5'
+    // Fill background with zinc-950 in dark mode, neutral-100 in light mode
+    ctx.fillStyle = isDarkMode ? '#09090b' : '#f5f5f5'
     ctx.fillRect(0, 0, canvasW, canvasH)
 
     // Calculate grid boundaries in page space
