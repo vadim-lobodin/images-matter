@@ -4,7 +4,9 @@ export default function Home() {
       <main className="bg-white dark:bg-black">
         <div className="p-6">
           <p className="max-w-md text-lg leading-8 text-neutral-600 dark:text-neutral-400">
-            Vadim Lobodin. Product designer focused on tools for experts. Now designing tools that change how teams build products at{" "}
+            Vadim Lobodin
+            <br />
+            Product designer focused on tools for experts. Now designing tools that change how teams build products at{" "}
             <a
               href="https://www.jetbrains.com"
               target="_blank"
