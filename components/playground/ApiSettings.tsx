@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Settings, Close, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
-import * as motion from "motion/react-client";
 
 interface ApiSettingsProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
+export function ApiSettings({ isOpen, onClose, onSave }: ApiSettingsProps) {
   const [apiMode, setApiMode] = useState<"litellm" | "gemini">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini";
@@ -35,7 +35,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
     return "https://litellm.labs.jb.gg";
   });
   const [showKey, setShowKey] = useState(false);
-  const [showToast, setShowToast] = useState(false);
   const [isSaved, setIsSaved] = useState(() => {
     if (typeof window !== "undefined") {
       const mode = (localStorage.getItem("api_mode") || "gemini") as "litellm" | "gemini";
@@ -64,11 +63,9 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
       localStorage.setItem("gemini_api_key", geminiApiKey.trim());
       setIsSaved(true);
 
-      // Show toast and reload after brief delay
-      setShowToast(true);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Close modal and trigger save callback
+      onClose();
+      onSave?.();
     } else {
       // Validate LiteLLM API key
       if (!apiKey || apiKey.trim() === "") {
@@ -101,11 +98,9 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
       localStorage.setItem("litellm_proxy_url", proxyUrl.trim());
       setIsSaved(true);
 
-      // Show toast and reload after brief delay
-      setShowToast(true);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Close modal and trigger save callback
+      onClose();
+      onSave?.();
     }
   };
 
@@ -338,33 +333,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
           </div>
         </div>
       </div>
-
-      {/* Toast Notification */}
-      {showToast && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]"
-        >
-          <div className="rounded-lg bg-green-500 px-6 py-3 shadow-lg flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path d="M5 13l4 4L19 7"></path>
-            </svg>
-            <p className="text-sm font-medium text-white">
-              API credentials saved successfully
-            </p>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }
