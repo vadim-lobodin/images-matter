@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint && npm run type-check",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
