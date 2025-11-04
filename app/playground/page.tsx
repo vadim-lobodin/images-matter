@@ -546,10 +546,10 @@ export default function PlaygroundPage() {
     // Show toast
     setShowSaveToast(true)
 
-    // Reload page after brief delay
+    // Auto-hide toast after 3 seconds
     setTimeout(() => {
-      window.location.reload()
-    }, 1500)
+      setShowSaveToast(false)
+    }, 3000)
   }, [])
 
   return (
