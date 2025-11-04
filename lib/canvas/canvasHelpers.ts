@@ -199,23 +199,35 @@ export function focusAndCenterShapes(
 ): void {
   if (!shapeIds || shapeIds.length === 0) return
 
-  // Select the shapes
+  // Get the shapes directly
+  const shapes = shapeIds.map(id => editor.getShape(id)).filter(Boolean)
+  if (shapes.length === 0) return
+
+  // Calculate bounds directly from shapes
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+
+  shapes.forEach((shape: any) => {
+    if (shape && shape.x !== undefined && shape.props?.w && shape.props?.h) {
+      minX = Math.min(minX, shape.x)
+      maxX = Math.max(maxX, shape.x + shape.props.w)
+      minY = Math.min(minY, shape.y)
+      maxY = Math.max(maxY, shape.y + shape.props.h)
+    }
+  })
+
+  // Calculate the center of all shapes
+  const centerX = (minX + maxX) / 2
+  const centerY = (minY + maxY) / 2
+
+  // Select the shapes after calculating bounds
   editor.setSelectedShapes(shapeIds as any)
 
-  // Wait for next frame to ensure selection is updated
-  requestAnimationFrame(() => {
-    // Get the selection bounds using tldraw's method
-    const selectionBounds = editor.getSelectionPageBounds()
-    if (!selectionBounds) return
-
-    // Calculate the center of the selection
-    const centerX = selectionBounds.x + selectionBounds.width / 2
-    const centerY = selectionBounds.y + selectionBounds.height / 2
-
-    // Pan to center WITHOUT changing zoom
-    editor.centerOnPoint(centerX, centerY, {
-      animation: animate ? { duration: 300 } : undefined
-    })
+  // Pan to center WITHOUT changing zoom
+  editor.centerOnPoint(centerX, centerY, {
+    animation: animate ? { duration: 300 } : undefined
   })
 }
 
