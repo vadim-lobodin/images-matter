@@ -252,8 +252,8 @@ export default function PlaygroundPage() {
         }
       )
 
-      // Just select the shapes - let tldraw handle viewport naturally like it does with duplication
-      editor.setSelectedShapes(placeholderIds)
+      // Smart focus: only pan if shapes are outside viewport
+      canvasHelpers.focusAndCenterShapes(editor, placeholderIds)
 
       // Branch based on API mode
       let requests
@@ -503,8 +503,8 @@ export default function PlaygroundPage() {
       prompt: 'From history',
     })
 
-    // Just select the images - let tldraw handle viewport naturally
-    editor.setSelectedShapes(shapeIds)
+    // Smart focus: only pan if shapes are outside viewport
+    canvasHelpers.focusAndCenterShapes(editor, shapeIds)
   }
 
   const handleCanvasDrop = async (imageUrl: string, position: { x: number; y: number }) => {

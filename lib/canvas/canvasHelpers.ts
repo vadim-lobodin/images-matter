@@ -187,6 +187,7 @@ export function getViewportCenter(editor: Editor): { x: number; y: number } {
 
 /**
  * Focus on shapes and center them in the viewport
+ * Only pans if shapes are outside the visible viewport
  * @param editor - tldraw editor instance
  * @param shapeIds - array of shape IDs to focus on
  * @param animate - whether to animate the transition (default: true)
@@ -205,17 +206,27 @@ export function focusAndCenterShapes(
   const selectionBounds = editor.getSelectionPageBounds()
   if (!selectionBounds) return
 
-  // Calculate the center point of the selection
-  const centerX = selectionBounds.x + selectionBounds.width / 2
-  const centerY = selectionBounds.y + selectionBounds.height / 2
+  // Check if selection is visible in viewport
+  const viewport = editor.getViewportPageBounds()
+  const isVisible =
+    selectionBounds.x < viewport.maxX &&
+    selectionBounds.maxX > viewport.x &&
+    selectionBounds.y < viewport.maxY &&
+    selectionBounds.maxY > viewport.y
 
-  // Account for toolbar height by shifting center up
-  const zoom = editor.getZoomLevel()
-  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
-  const adjustedCenterY = centerY - toolbarHeightPage / 4
+  // Only pan if shapes are not visible
+  if (!isVisible) {
+    const centerX = selectionBounds.x + selectionBounds.width / 2
+    const centerY = selectionBounds.y + selectionBounds.height / 2
 
-  // Pan to the center point WITHOUT changing zoom
-  editor.centerOnPoint(centerX, adjustedCenterY, { animation: animate ? { duration: 300 } : undefined })
+    // Account for toolbar height by shifting center up
+    const zoom = editor.getZoomLevel()
+    const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
+    const adjustedCenterY = centerY - toolbarHeightPage / 4
+
+    // Pan to the center point WITHOUT changing zoom
+    editor.centerOnPoint(centerX, adjustedCenterY, { animation: animate ? { duration: 300 } : undefined })
+  }
 }
 
 /**
