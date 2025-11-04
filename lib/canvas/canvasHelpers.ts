@@ -202,49 +202,27 @@ export function focusAndCenterShapes(
   // Select the shapes first
   editor.setSelectedShapes(shapeIds as any)
 
-  // Get the shapes directly
-  const shapes = shapeIds.map(id => editor.getShape(id)).filter(Boolean)
-  if (shapes.length === 0) return
+  // Use requestAnimationFrame to ensure selection is updated
+  requestAnimationFrame(() => {
+    // Get selection bounds - this works better than manual calculation
+    const bounds = editor.getSelectionPageBounds()
+    if (!bounds) return
 
-  // Calculate bounds directly from shapes
-  let minX = Infinity
-  let maxX = -Infinity
-  let minY = Infinity
-  let maxY = -Infinity
+    // Calculate center of selection
+    const centerX = bounds.center.x
+    const centerY = bounds.center.y
 
-  shapes.forEach((shape: any) => {
-    if (shape && shape.x !== undefined && shape.props?.w && shape.props?.h) {
-      minX = Math.min(minX, shape.x)
-      maxX = Math.max(maxX, shape.x + shape.props.w)
-      minY = Math.min(minY, shape.y)
-      maxY = Math.max(maxY, shape.y + shape.props.h)
-    }
+    // Adjust Y coordinate to account for toolbar at bottom
+    // Move shapes up by toolbar offset so they appear centered in visible area
+    const zoom = editor.getZoomLevel()
+    const toolbarOffset = (TOOLBAR_HEIGHT_PX / 4) / zoom // Quarter of toolbar height
+    const adjustedCenterY = centerY - toolbarOffset
+
+    // Pan to center
+    editor.centerOnPoint(centerX, adjustedCenterY, {
+      animation: animate ? { duration: 300 } : undefined
+    })
   })
-
-  // Calculate the center of all shapes in page coordinates
-  const shapesCenter = {
-    x: (minX + maxX) / 2,
-    y: (minY + maxY) / 2
-  }
-
-  // Get viewport bounds in screen space
-  const viewportPageBounds = editor.getViewportPageBounds()
-  const zoom = editor.getZoomLevel()
-
-  // Calculate the visual center of the canvas (accounting for toolbar at bottom)
-  // The toolbar takes up TOOLBAR_HEIGHT_PX at the bottom, so we want to center in the remaining space
-  const visualCenterY = viewportPageBounds.y + (viewportPageBounds.h - TOOLBAR_HEIGHT_PX / zoom) / 2
-
-  // Calculate camera offset needed to position shapes at the visual center
-  const camera = editor.getCamera()
-  const targetX = camera.x + (shapesCenter.x - viewportPageBounds.center.x)
-  const targetY = camera.y + (shapesCenter.y - visualCenterY)
-
-  // Set camera position
-  editor.setCamera(
-    { x: targetX, y: targetY, z: camera.z },
-    { animation: animate ? { duration: 300 } : undefined }
-  )
 }
 
 /**
