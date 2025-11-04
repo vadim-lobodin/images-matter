@@ -700,7 +700,7 @@ export default function PlaygroundPage() {
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed top-8 left-1/2 -translate-x-1/2 z-[100]"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100]"
         >
           <div className="rounded-lg bg-green-500 px-6 py-3 shadow-lg flex items-center gap-2">
             <svg
