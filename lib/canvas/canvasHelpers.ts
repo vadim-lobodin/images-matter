@@ -212,18 +212,11 @@ export function focusAndCenterShapes(
     // Get current zoom to maintain it
     const currentZoom = editor.getZoomLevel()
 
-    // Calculate insets - add padding for toolbar at bottom
-    const insets = {
-      top: 100,
-      right: 100,
-      bottom: TOOLBAR_HEIGHT_PX + 100, // Extra padding for toolbar
-      left: 100
-    }
-
     // Use zoomToBounds but lock to current zoom level
+    // inset provides padding around the bounds
     editor.zoomToBounds(bounds, {
       targetZoom: currentZoom, // Lock zoom to current level
-      insets,
+      inset: 100, // Padding around the bounds
       animation: animate ? { duration: 300 } : undefined
     })
   })
