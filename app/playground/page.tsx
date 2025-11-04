@@ -702,9 +702,9 @@ export default function PlaygroundPage() {
           exit={{ opacity: 0, y: -20 }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[100]"
         >
-          <div className="rounded-lg bg-green-500 px-6 py-3 shadow-lg flex items-center gap-2">
+          <div className="rounded-lg bg-card border border-border px-6 py-3 shadow-lg flex items-center gap-2">
             <svg
-              className="w-5 h-5 text-white"
+              className="w-5 h-5 text-foreground"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -714,7 +714,7 @@ export default function PlaygroundPage() {
             >
               <path d="M5 13l4 4L19 7"></path>
             </svg>
-            <p className="text-sm font-medium text-white">
+            <p className="text-sm font-medium text-foreground">
               API credentials saved successfully
             </p>
           </div>
