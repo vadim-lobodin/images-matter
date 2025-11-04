@@ -34,9 +34,17 @@ const canvasHelpers = {
 // Helper to get API credentials from localStorage
 function getApiCredentials() {
   if (typeof window === 'undefined') return null
-  const apiKey = localStorage.getItem('litellm_api_key')
-  const proxyUrl = localStorage.getItem('litellm_proxy_url')
-  return apiKey && proxyUrl ? { apiKey, proxyUrl } : null
+
+  const apiMode = (localStorage.getItem('api_mode') || 'litellm') as 'litellm' | 'gemini'
+
+  if (apiMode === 'gemini') {
+    const apiKey = localStorage.getItem('gemini_api_key')
+    return apiKey ? { mode: 'gemini' as const, apiKey } : null
+  } else {
+    const apiKey = localStorage.getItem('litellm_api_key')
+    const proxyUrl = localStorage.getItem('litellm_proxy_url')
+    return apiKey && proxyUrl ? { mode: 'litellm' as const, apiKey, proxyUrl } : null
+  }
 }
 
 // Reusable empty map to avoid creating new instances
@@ -60,6 +68,7 @@ export default function PlaygroundPage() {
   const [historyReloadTrigger, setHistoryReloadTrigger] = useState(0)
   const [helpersLoaded, setHelpersLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const previousAspectRatioRef = useRef<string | null>(null)
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -94,6 +103,24 @@ export default function PlaygroundPage() {
   useEffect(() => {
     localStorage.setItem('playground_numImages', numImages.toString())
   }, [numImages])
+
+  // Auto-set aspect ratio to 1:1 in edit mode
+  useEffect(() => {
+    if (selectedImages.length > 0) {
+      // Entering edit mode - save current aspect ratio and set to 1:1
+      if (aspectRatio !== '1:1') {
+        previousAspectRatioRef.current = aspectRatio
+        setAspectRatio('1:1')
+      }
+    } else {
+      // Exiting edit mode - restore previous aspect ratio
+      if (previousAspectRatioRef.current) {
+        setAspectRatio(previousAspectRatioRef.current)
+        previousAspectRatioRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedImages.length])
 
   // Load canvas helpers dynamically on client side only
   useEffect(() => {
@@ -207,67 +234,145 @@ export default function PlaygroundPage() {
         }
       )
 
-      // Dynamically import the appropriate API function
-      const { generateGeminiImage, editGeminiImage } = await import('@/lib/litellm-client')
-      const apiFunction = isEdit ? editGeminiImage : generateGeminiImage
+      // Branch based on API mode
+      let requests
 
-      // Create parallel API requests
-      const requests = Array.from({ length: numImages }, (_, index) => {
+      if (credentials.mode === 'gemini') {
+        // Use direct Gemini API
+        const { generateGeminiImage, editGeminiImage } = await import('@/lib/gemini-direct-client')
+
         const baseParams = {
           model,
           prompt,
           aspectRatio,
           imageSize,
-          numImages: 1,
+          numImages,
           apiKey: credentials.apiKey,
-          baseURL: credentials.proxyUrl,
         }
 
         const params = isEdit
           ? { ...baseParams, images: inputImages as string[], imageIds, promptHistory: combinedPromptHistory }
           : baseParams
 
-        return apiFunction(params as any)
-          .then(async (response) => {
-            const imageUrls = extractImagesFromResponse(response)
-            if (imageUrls.length > 0 && index < placeholderIds.length) {
+        // Gemini client handles parallel requests internally
+        requests = [isEdit ? editGeminiImage(params as any) : generateGeminiImage(params as any)]
+      } else {
+        // Use LiteLLM proxy
+        const { generateGeminiImage, editGeminiImage } = await import('@/lib/litellm-client')
+        const apiFunction = isEdit ? editGeminiImage : generateGeminiImage
+
+        // Create parallel API requests
+        requests = Array.from({ length: numImages }, (_, index) => {
+          const baseParams = {
+            model,
+            prompt,
+            aspectRatio,
+            imageSize,
+            numImages: 1,
+            apiKey: credentials.apiKey,
+            baseURL: credentials.proxyUrl,
+          }
+
+          const params = isEdit
+            ? { ...baseParams, images: inputImages as string[], imageIds, promptHistory: combinedPromptHistory }
+            : baseParams
+
+          return apiFunction(params as any)
+            .then(async (response) => {
+              const imageUrls = extractImagesFromResponse(response)
+              if (imageUrls.length > 0 && index < placeholderIds.length) {
+                // Load the image to get its actual dimensions
+                const img = new Image()
+                await new Promise<void>((resolve, reject) => {
+                  img.onload = () => resolve()
+                  img.onerror = () => reject(new Error('Failed to load image'))
+                  img.src = imageUrls[0]
+                })
+
+                // Update shape with image data and correct dimensions
+                editor.updateShape<GeneratedImageShape>({
+                  id: placeholderIds[index],
+                  type: 'generated-image',
+                  props: {
+                    imageData: imageUrls[0],
+                    isLoading: false,
+                    w: img.naturalWidth,
+                    h: img.naturalHeight,
+                  },
+                })
+                return imageUrls[0]
+              }
+              throw new Error('No image in response')
+            })
+            .catch((error) => {
+              console.error(`Request ${index + 1}/${numImages} failed:`, error)
+              if (index < placeholderIds.length) {
+                editor.deleteShape(placeholderIds[index] as any)
+              }
+              return null
+            })
+        })
+      }
+
+      // Wait for all requests and filter successful ones
+      const results = await Promise.allSettled(requests)
+
+      // Handle results differently based on API mode
+      let successfulImages: string[]
+
+      if (credentials.mode === 'gemini') {
+        // Gemini mode returns a single response with multiple images
+        if (results[0].status === 'fulfilled') {
+          const response = results[0].value
+          const imageUrls = extractImagesFromResponse(response)
+
+          // Update all placeholders with the returned images
+          for (let i = 0; i < imageUrls.length && i < placeholderIds.length; i++) {
+            const imageUrl = imageUrls[i]
+            try {
               // Load the image to get its actual dimensions
               const img = new Image()
               await new Promise<void>((resolve, reject) => {
                 img.onload = () => resolve()
                 img.onerror = () => reject(new Error('Failed to load image'))
-                img.src = imageUrls[0]
+                img.src = imageUrl
               })
 
               // Update shape with image data and correct dimensions
               editor.updateShape<GeneratedImageShape>({
-                id: placeholderIds[index],
+                id: placeholderIds[i],
                 type: 'generated-image',
                 props: {
-                  imageData: imageUrls[0],
+                  imageData: imageUrl,
                   isLoading: false,
                   w: img.naturalWidth,
                   h: img.naturalHeight,
                 },
               })
-              return imageUrls[0]
+            } catch (error) {
+              console.error(`Failed to process image ${i + 1}:`, error)
+              editor.deleteShape(placeholderIds[i] as any)
             }
-            throw new Error('No image in response')
-          })
-          .catch((error) => {
-            console.error(`Request ${index + 1}/${numImages} failed:`, error)
-            if (index < placeholderIds.length) {
-              editor.deleteShape(placeholderIds[index] as any)
-            }
-            return null
-          })
-      })
+          }
 
-      // Wait for all requests and filter successful ones
-      const results = await Promise.allSettled(requests)
-      const successfulImages = results
-        .map((r) => (r.status === 'fulfilled' ? r.value : null))
-        .filter((url): url is string => url !== null)
+          // Delete any remaining placeholders if we got fewer images than expected
+          for (let i = imageUrls.length; i < placeholderIds.length; i++) {
+            editor.deleteShape(placeholderIds[i] as any)
+          }
+
+          successfulImages = imageUrls
+        } else {
+          // All failed
+          // Delete all placeholders
+          placeholderIds.forEach(id => editor.deleteShape(id as any))
+          successfulImages = []
+        }
+      } else {
+        // LiteLLM mode returns individual results for each request
+        successfulImages = results
+          .map((r) => (r.status === 'fulfilled' ? r.value : null))
+          .filter((url): url is string => url !== null)
+      }
 
       if (successfulImages.length === 0) {
         throw new Error('All image generation requests failed')

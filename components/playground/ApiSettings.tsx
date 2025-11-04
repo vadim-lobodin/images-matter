@@ -9,9 +9,21 @@ interface ApiSettingsProps {
 }
 
 export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
+  const [apiMode, setApiMode] = useState<"litellm" | "gemini">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("api_mode") as "litellm" | "gemini") || "litellm";
+    }
+    return "litellm";
+  });
   const [apiKey, setApiKey] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("litellm_api_key") || "";
+    }
+    return "";
+  });
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("gemini_api_key") || "";
     }
     return "";
   });
@@ -24,6 +36,10 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
   const [showKey, setShowKey] = useState(false);
   const [isSaved, setIsSaved] = useState(() => {
     if (typeof window !== "undefined") {
+      const mode = (localStorage.getItem("api_mode") || "litellm") as "litellm" | "gemini";
+      if (mode === "gemini") {
+        return !!localStorage.getItem("gemini_api_key");
+      }
       const savedKey = localStorage.getItem("litellm_api_key");
       const savedUrl = localStorage.getItem("litellm_proxy_url");
       return !!(savedKey && savedUrl);
@@ -35,45 +51,64 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
   const handleSave = () => {
     setError(null);
 
-    // Validate API key
-    if (!apiKey || apiKey.trim() === "") {
-      setError("Please provide an API key");
-      return;
+    if (apiMode === "gemini") {
+      // Validate Google API key
+      if (!geminiApiKey || geminiApiKey.trim() === "") {
+        setError("Please provide a Google API key");
+        return;
+      }
+
+      localStorage.setItem("api_mode", "gemini");
+      localStorage.setItem("gemini_api_key", geminiApiKey.trim());
+      setIsSaved(true);
+
+      // Reload the page to apply new settings
+      window.location.reload();
+    } else {
+      // Validate LiteLLM API key
+      if (!apiKey || apiKey.trim() === "") {
+        setError("Please provide an API key");
+        return;
+      }
+
+      // Validate proxy URL
+      if (!proxyUrl || proxyUrl.trim() === "") {
+        setError("Please provide a proxy URL");
+        return;
+      }
+
+      // Validate URL format
+      try {
+        new URL(proxyUrl);
+      } catch {
+        setError("Invalid proxy URL format. Please enter a valid URL (e.g., https://your-proxy.com)");
+        return;
+      }
+
+      // Check if URL uses HTTPS
+      if (!proxyUrl.startsWith("https://") && !proxyUrl.startsWith("http://")) {
+        setError("Proxy URL must start with https:// or http://");
+        return;
+      }
+
+      localStorage.setItem("api_mode", "litellm");
+      localStorage.setItem("litellm_api_key", apiKey.trim());
+      localStorage.setItem("litellm_proxy_url", proxyUrl.trim());
+      setIsSaved(true);
+
+      // Reload the page to apply new settings
+      window.location.reload();
     }
-
-    // Validate proxy URL
-    if (!proxyUrl || proxyUrl.trim() === "") {
-      setError("Please provide a proxy URL");
-      return;
-    }
-
-    // Validate URL format
-    try {
-      new URL(proxyUrl);
-    } catch {
-      setError("Invalid proxy URL format. Please enter a valid URL (e.g., https://your-proxy.com)");
-      return;
-    }
-
-    // Check if URL uses HTTPS
-    if (!proxyUrl.startsWith("https://") && !proxyUrl.startsWith("http://")) {
-      setError("Proxy URL must start with https:// or http://");
-      return;
-    }
-
-    localStorage.setItem("litellm_api_key", apiKey.trim());
-    localStorage.setItem("litellm_proxy_url", proxyUrl.trim());
-    setIsSaved(true);
-
-    // Reload the page to apply new settings
-    window.location.reload();
   };
 
   const handleClear = () => {
+    localStorage.removeItem("api_mode");
     localStorage.removeItem("litellm_api_key");
     localStorage.removeItem("litellm_proxy_url");
+    localStorage.removeItem("gemini_api_key");
     setApiKey("");
     setProxyUrl("");
+    setGeminiApiKey("");
     setIsSaved(false);
   };
 
@@ -112,11 +147,50 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             </div>
           </div>
 
-          {/* API Key Input */}
-          <div className="space-y-2">
-            <label htmlFor="api-key" className="block text-sm font-semibold text-foreground">
-              LiteLLM API Key
+          {/* API Mode Selection */}
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-foreground">
+              API Mode
             </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  value="litellm"
+                  checked={apiMode === "litellm"}
+                  onChange={() => setApiMode("litellm")}
+                  className="w-4 h-4 text-primary"
+                />
+                <span className="text-sm text-foreground">LiteLLM Proxy</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  value="gemini"
+                  checked={apiMode === "gemini"}
+                  onChange={() => setApiMode("gemini")}
+                  className="w-4 h-4 text-primary"
+                />
+                <span className="text-sm text-foreground">Google Gemini API</span>
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {apiMode === "litellm"
+                ? "Use a LiteLLM proxy server (JetBrains or self-hosted) for API access."
+                : "Connect directly to Google's Gemini API with your API key."}
+            </p>
+          </div>
+
+          {/* LiteLLM Mode Fields */}
+          {apiMode === "litellm" && (
+            <>
+              {/* API Key Input */}
+              <div className="space-y-2">
+                <label htmlFor="api-key" className="block text-sm font-semibold text-foreground">
+                  LiteLLM API Key
+                </label>
             <div className="relative">
               <input
                 id="api-key"
@@ -155,23 +229,68 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             </p>
           </div>
 
-          {/* Proxy URL Input */}
-          <div className="space-y-2">
-            <label htmlFor="proxy-url" className="block text-sm font-semibold text-foreground">
-              LiteLLM Proxy URL
-            </label>
-            <input
-              id="proxy-url"
-              type="url"
-              value={proxyUrl}
-              onChange={(e) => setProxyUrl(e.target.value)}
-              placeholder="https://litellm.labs.jb.gg"
-              className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
-            />
-            <p className="text-xs text-muted-foreground">
-              Default JetBrains LiteLLM proxy (requires VPN/WiFi). Or use your own proxy.
-            </p>
-          </div>
+              {/* Proxy URL Input */}
+              <div className="space-y-2">
+                <label htmlFor="proxy-url" className="block text-sm font-semibold text-foreground">
+                  LiteLLM Proxy URL
+                </label>
+                <input
+                  id="proxy-url"
+                  type="url"
+                  value={proxyUrl}
+                  onChange={(e) => setProxyUrl(e.target.value)}
+                  placeholder="https://litellm.labs.jb.gg"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Default JetBrains LiteLLM proxy (requires VPN/WiFi). Or use your own proxy.
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Gemini Mode Fields */}
+          {apiMode === "gemini" && (
+            <div className="space-y-2">
+              <label htmlFor="gemini-api-key" className="block text-sm font-semibold text-foreground">
+                Google API Key
+              </label>
+              <div className="relative">
+                <input
+                  id="gemini-api-key"
+                  type={showKey ? "text" : "password"}
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder="Enter your Google API key"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted transition-colors"
+                  aria-label={showKey ? "Hide key" : "Show key"}
+                >
+                  {showKey ? (
+                    <ViewOff size={16} className="text-muted-foreground" />
+                  ) : (
+                    <View size={16} className="text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Get your API key from{" "}
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Google AI Studio
+                </a>
+                . Direct connection to Google&apos;s Gemini API.
+              </p>
+            </div>
+          )}
 
           {/* Error */}
           {error && (
