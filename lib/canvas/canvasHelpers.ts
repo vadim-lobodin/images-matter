@@ -404,6 +404,7 @@ export async function addImageToCanvas(
       resolution: metadata?.resolution || '1K',
       isLoading: false,
       promptHistory: [], // New images start with empty history
+      hasAnimated: false,
     },
   })
 
@@ -453,6 +454,7 @@ export function createLoadingPlaceholders(
         aspectRatio: metadata.aspectRatio,
         resolution: metadata.resolution,
         isLoading: true,
+        hasAnimated: false,
         promptHistory: newPromptHistory,
       },
     })
@@ -479,6 +481,7 @@ export function createLoadingPlaceholders(
           aspectRatio: metadata.aspectRatio,
           resolution: metadata.resolution,
           isLoading: true,
+          hasAnimated: false,
           promptHistory: newPromptHistory,
         },
       })
@@ -513,6 +516,7 @@ export function createLoadingPlaceholders(
           aspectRatio: metadata.aspectRatio,
           resolution: metadata.resolution,
           isLoading: true,
+          hasAnimated: false,
           promptHistory: newPromptHistory,
         },
       })
@@ -550,6 +554,7 @@ export function createLoadingPlaceholders(
           aspectRatio: metadata.aspectRatio,
           resolution: metadata.resolution,
           isLoading: true,
+          hasAnimated: false,
           promptHistory: newPromptHistory,
         },
       })

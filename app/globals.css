@@ -144,3 +144,44 @@
   --tl-color-selected: #a3a3a3 !important; /* neutral-400 */
   --tl-color-selected-contrast: #171717 !important;
 }
+
+/* Round corners for all images (including clipboard) */
+/* Target the shape container */
+.tl-shape[data-shape-type="image"] {
+  border-radius: 20px !important;
+  overflow: visible !important;
+}
+
+/* Target all possible image containers */
+.tl-image-shape__container,
+.tl-image__container,
+[data-shape-type="image"] > div,
+.tl-shape[data-shape-type="image"] > div {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+
+/* Target all image elements */
+.tl-image-shape__container img,
+.tl-image__container img,
+[data-shape-type="image"] img,
+.tl-shape[data-shape-type="image"] img,
+.tl-shape img {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+
+/* Target SVG elements that might wrap images */
+.tl-shape[data-shape-type="image"] foreignObject,
+.tl-shape foreignObject,
+[data-shape-type="image"] foreignObject {
+  overflow: hidden !important;
+  border-radius: 20px !important;
+}
+
+/* More aggressive targeting of any div inside image shapes */
+.tl-shape[data-shape-type="image"] div[style*="width"],
+.tl-shape[data-shape-type="image"] div[style*="height"] {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}

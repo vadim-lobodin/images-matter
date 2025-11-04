@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Close, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
+import { Close, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
+import * as motion from "motion/react-client";
+import { AnimatePresence } from "motion/react";
 
 interface ApiSettingsProps {
   isOpen: boolean;
@@ -114,20 +116,34 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
     setIsSaved(false);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", duration: 0.3, bounce: 0.1 }}
+            className="relative bg-neutral-100/70 dark:bg-neutral-800/70 backdrop-blur-[18px] backdrop-saturate-[1.8] rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+          >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Settings size={20} className="text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">API Settings</h2>
-          </div>
+        <div className="flex items-center justify-between p-6">
+          <h2 className="text-xl font-semibold text-foreground">API Settings</h2>
           <button
             onClick={onClose}
-            className="rounded-full p-1 hover:bg-muted transition-colors"
+            className="rounded-full p-1 hover:bg-accent/50 transition-colors"
             aria-label="Close"
           >
             <Close size={20} className="text-muted-foreground" />
@@ -165,11 +181,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 <span className="text-sm text-foreground">Google Gemini API</span>
               </label>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {apiMode === "litellm"
-                ? "Use a LiteLLM proxy server (JetBrains or self-hosted) for API access."
-                : "Connect directly to Google's Gemini API with your API key."}
-            </p>
           </div>
 
           {/* LiteLLM Mode Fields */}
@@ -212,20 +223,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 )}
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              JetBrains proxy:{" "}
-              <a
-                href="https://litellm.labs.jb.gg/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                https://litellm.labs.jb.gg/
-              </a>
-              {" "}(requires VPN/WiFi)
-              <br />
-              Or use your own LiteLLM proxy / Gemini API key
-            </p>
           </div>
 
               {/* Proxy URL Input */}
@@ -241,8 +238,23 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                   placeholder="https://litellm.labs.jb.gg"
                   className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
                 />
+              </div>
+
+              {/* LiteLLM Info */}
+              <div className="rounded-lg bg-muted/50 border border-border p-4">
                 <p className="text-xs text-muted-foreground">
-                  Default JetBrains LiteLLM proxy (requires VPN/WiFi). Or use your own proxy.
+                  JetBrains proxy:{" "}
+                  <a
+                    href="https://litellm.labs.jb.gg/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    https://litellm.labs.jb.gg/
+                  </a>
+                  {" "}(requires VPN/WiFi).
+                  <br />
+                  Or use your own LiteLLM proxy or switch to Google Gemini API.
                 </p>
               </div>
             </>
@@ -331,7 +343,9 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             )}
           </div>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

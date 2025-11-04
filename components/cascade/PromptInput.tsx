@@ -59,7 +59,7 @@ export function PromptInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          rows={3}
+          rows={2}
           maxLength={maxLength}
           className="w-full rounded-lg bg-transparent px-4 py-3 text-lg text-foreground placeholder:text-muted-foreground outline-none resize-none"
         />
