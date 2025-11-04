@@ -204,22 +204,28 @@ export function focusAndCenterShapes(
 
   // Use requestAnimationFrame to ensure selection is updated
   requestAnimationFrame(() => {
-    // Get selection bounds - this works better than manual calculation
+    // Get selection bounds
     const bounds = editor.getSelectionPageBounds()
     if (!bounds) return
 
-    // Calculate center of selection
-    const centerX = bounds.center.x
-    const centerY = bounds.center.y
+    // Get current zoom to maintain it
+    const currentZoom = editor.getZoomLevel()
 
-    // Adjust Y coordinate to account for toolbar at bottom
-    // Move shapes up by toolbar offset so they appear centered in visible area
-    const zoom = editor.getZoomLevel()
-    const toolbarOffset = (TOOLBAR_HEIGHT_PX / 4) / zoom // Quarter of toolbar height
-    const adjustedCenterY = centerY - toolbarOffset
+    // Get viewport dimensions to calculate proper insets
+    const viewportScreen = editor.getViewportScreenBounds()
 
-    // Pan to center
-    editor.centerOnPoint(centerX, adjustedCenterY, {
+    // Calculate insets - add padding for toolbar at bottom
+    const insets = {
+      top: 100,
+      right: 100,
+      bottom: TOOLBAR_HEIGHT_PX + 100, // Extra padding for toolbar
+      left: 100
+    }
+
+    // Use zoomToBounds but lock to current zoom level
+    editor.zoomToBounds(bounds, {
+      targetZoom: currentZoom, // Lock zoom to current level
+      insets,
       animation: animate ? { duration: 300 } : undefined
     })
   })
