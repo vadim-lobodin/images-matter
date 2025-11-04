@@ -202,21 +202,8 @@ export function focusAndCenterShapes(
   // Select the shapes
   editor.setSelectedShapes(shapeIds as any)
 
-  // Get the selection bounds
-  const selectionBounds = editor.getSelectionPageBounds()
-  if (!selectionBounds) return
-
-  // Calculate selection center
-  const centerX = selectionBounds.x + selectionBounds.width / 2
-  const centerY = selectionBounds.y + selectionBounds.height / 2
-
-  // Account for toolbar height by shifting center up
-  const zoom = editor.getZoomLevel()
-  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
-  const adjustedCenterY = centerY - toolbarHeightPage / 4
-
-  // Pan to the center point WITHOUT changing zoom
-  editor.centerOnPoint(centerX, adjustedCenterY, { animation: animate ? { duration: 300 } : undefined })
+  // Use tldraw's built-in zoomToSelection which handles all the camera math
+  editor.zoomToSelection({ animation: animate ? { duration: 300 } : undefined })
 }
 
 /**
