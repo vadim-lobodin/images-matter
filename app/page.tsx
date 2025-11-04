@@ -6,7 +6,7 @@ export default function Home() {
           <p className="max-w-md text-xl leading-9 text-neutral-600 dark:text-neutral-400">
             <span className="text-black dark:text-neutral-50">Vadim Lobodin</span>
             <br />
-            Product designer focused on tools for experts.
+            Berlin based product designer focused on tools for experts.
             <br />
             Now designing tools that change how teams build products at{" "}
             <a
