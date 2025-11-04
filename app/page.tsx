@@ -4,8 +4,7 @@ export default function Home() {
       <main className="bg-white dark:bg-black">
         <div className="p-6">
           <p className="max-w-md text-lg leading-8 text-neutral-600 dark:text-neutral-400">
-            Generate, edit, and create variations of images using AI models via LiteLLM proxy.
-            Supports DALL-E, Stable Diffusion, and Vertex AI Imagen.
+            Vadim Lobodin. Product designer focused on tools for experts. Now designing tools that change how teams build products at JetBrains.
           </p>
         </div>
       </main>
