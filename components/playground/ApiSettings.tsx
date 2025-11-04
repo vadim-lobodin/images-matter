@@ -34,6 +34,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
     return "https://litellm.labs.jb.gg";
   });
   const [showKey, setShowKey] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [isSaved, setIsSaved] = useState(() => {
     if (typeof window !== "undefined") {
       const mode = (localStorage.getItem("api_mode") || "gemini") as "litellm" | "gemini";
@@ -62,8 +63,11 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
       localStorage.setItem("gemini_api_key", geminiApiKey.trim());
       setIsSaved(true);
 
-      // Reload the page to apply new settings
-      window.location.reload();
+      // Show toast and reload after brief delay
+      setShowToast(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } else {
       // Validate LiteLLM API key
       if (!apiKey || apiKey.trim() === "") {
@@ -96,8 +100,11 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
       localStorage.setItem("litellm_proxy_url", proxyUrl.trim());
       setIsSaved(true);
 
-      // Reload the page to apply new settings
-      window.location.reload();
+      // Show toast and reload after brief delay
+      setShowToast(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
   };
 
@@ -311,15 +318,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             </div>
           )}
 
-          {/* Status */}
-          {isSaved && !error && (
-            <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
-              <p className="text-sm text-green-700 dark:text-green-300">
-                ✓ API credentials are configured and saved
-              </p>
-            </div>
-          )}
-
           {/* Actions */}
           <div className="flex gap-3">
             <button
@@ -339,6 +337,33 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]"
+        >
+          <div className="rounded-lg bg-green-500 px-6 py-3 shadow-lg flex items-center gap-2">
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M5 13l4 4L19 7"></path>
+            </svg>
+            <p className="text-sm font-medium text-white">
+              API credentials saved successfully
+            </p>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
