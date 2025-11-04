@@ -654,10 +654,15 @@ export default function PlaygroundPage() {
 
       {/* Error notification */}
       {error && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 max-w-md w-full px-4">
-          <div className="rounded-lg bg-destructive/90 backdrop-blur-sm border border-destructive p-4 shadow-2xl">
-            <p className="text-sm text-white font-semibold mb-2">Error</p>
-            <p className="text-sm text-white/90 whitespace-pre-line">{error}</p>
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md w-full px-4"
+        >
+          <div className="rounded-lg bg-card border border-border p-4 shadow-lg">
+            <p className="text-sm text-foreground font-semibold mb-2">Error</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{error}</p>
             {(error.includes('credentials') ||
               error.includes('Settings') ||
               error.includes('API key') ||
@@ -669,19 +674,19 @@ export default function PlaygroundPage() {
                   setShowSettings(true)
                   setError(null)
                 }}
-                className="mt-3 px-3 py-1.5 text-sm text-white bg-white/20 hover:bg-white/30 rounded-md transition-colors"
+                className="mt-3 px-3 py-1.5 text-sm text-foreground bg-accent hover:bg-accent/80 rounded-md transition-colors"
               >
                 Open Settings
               </button>
             )}
             <button
               onClick={() => setError(null)}
-              className="absolute top-3 right-3 text-white/70 hover:text-white text-xl"
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground text-xl"
             >
               ×
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Modals */}
