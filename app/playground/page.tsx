@@ -252,8 +252,8 @@ export default function PlaygroundPage() {
         }
       )
 
-      // Focus and center the loading placeholders immediately
-      canvasHelpers.focusAndCenterShapes(editor, placeholderIds)
+      // Just select the shapes - let tldraw handle viewport naturally like it does with duplication
+      editor.setSelectedShapes(placeholderIds)
 
       // Branch based on API mode
       let requests
@@ -503,8 +503,8 @@ export default function PlaygroundPage() {
       prompt: 'From history',
     })
 
-    // Focus and center the images from history
-    canvasHelpers.focusAndCenterShapes(editor, shapeIds)
+    // Just select the images - let tldraw handle viewport naturally
+    editor.setSelectedShapes(shapeIds)
   }
 
   const handleCanvasDrop = async (imageUrl: string, position: { x: number; y: number }) => {
