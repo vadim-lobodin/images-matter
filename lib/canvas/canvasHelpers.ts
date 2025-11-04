@@ -187,7 +187,7 @@ export function getViewportCenter(editor: Editor): { x: number; y: number } {
 
 /**
  * Focus on shapes and center them in the viewport
- * Always pans to show the shapes
+ * Pans to show the shapes WITHOUT changing zoom level
  * @param editor - tldraw editor instance
  * @param shapeIds - array of shape IDs to focus on
  * @param animate - whether to animate the transition (default: true)
@@ -202,8 +202,18 @@ export function focusAndCenterShapes(
   // Select the shapes
   editor.setSelectedShapes(shapeIds as any)
 
-  // Use tldraw's built-in zoomToSelection which handles all the camera math
-  editor.zoomToSelection({ animation: animate ? { duration: 300 } : undefined })
+  // Get the selection bounds using tldraw's method
+  const selectionBounds = editor.getSelectionPageBounds()
+  if (!selectionBounds) return
+
+  // Calculate the center of the selection
+  const centerX = selectionBounds.x + selectionBounds.width / 2
+  const centerY = selectionBounds.y + selectionBounds.height / 2
+
+  // Pan to center WITHOUT changing zoom
+  editor.centerOnPoint(centerX, centerY, {
+    animation: animate ? { duration: 300 } : undefined
+  })
 }
 
 /**
