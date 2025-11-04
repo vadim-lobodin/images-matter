@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { PromptInput } from '@/components/playground/PromptInput'
+import { PromptInput } from '@/components/cascade/PromptInput'
 
 const meta: Meta<typeof PromptInput> = {
   title: 'Components/PromptInput',

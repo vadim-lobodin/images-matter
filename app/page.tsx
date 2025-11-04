@@ -6,7 +6,7 @@ export default function Home() {
           <p className="max-w-md text-xl leading-9 text-neutral-600 dark:text-neutral-400">
             <span className="text-black dark:text-neutral-50">Vadim Lobodin</span>
             <br />
-            Berlin based product designer focused on tools for experts. Now designing tools that change how teams build products at{" "}
+            Berlin-based product designer focused on tools for experts. Now at{" "}
             <a
               href="https://www.jetbrains.com"
               target="_blank"
@@ -15,7 +15,7 @@ export default function Home() {
             >
               JetBrains
             </a>
-            .
+            {" "}designing tools that change how teams build products.
           </p>
         </div>
       </main>

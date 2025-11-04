@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { ApiSettings } from '@/components/playground/ApiSettings'
+import { ApiSettings } from '@/components/cascade/ApiSettings'
 
 const meta: Meta<typeof ApiSettings> = {
   title: 'Components/ApiSettings',

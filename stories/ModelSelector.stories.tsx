@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { ModelSelector } from '@/components/playground/ModelSelector'
+import { ModelSelector } from '@/components/cascade/ModelSelector'
 import type { ModelKey } from '@/lib/models'
 
 const meta: Meta<typeof ModelSelector> = {

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { ParameterControls } from '@/components/playground/ParameterControls'
+import { ParameterControls } from '@/components/cascade/ParameterControls'
 import type { ModelKey } from '@/lib/models'
 
 const meta: Meta<typeof ParameterControls> = {

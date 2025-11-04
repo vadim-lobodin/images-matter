@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth } from '@carbon/icons-react'
-import { PromptInput } from '@/components/playground/PromptInput'
+import { PromptInput } from '@/components/cascade/PromptInput'
 import { cn } from '@/lib/utils'
 import { type ModelKey, AVAILABLE_MODELS } from '@/lib/models'
 import * as motion from 'motion/react-client'
