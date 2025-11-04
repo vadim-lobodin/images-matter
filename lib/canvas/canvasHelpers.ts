@@ -225,7 +225,7 @@ export function focusAndCenterShapes(
   // Account for toolbar height - shift center up so shapes appear in visible area
   const zoom = editor.getZoomLevel()
   const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
-  const adjustedCenterY = centerY - toolbarHeightPage / 4
+  const adjustedCenterY = centerY - toolbarHeightPage / 2
 
   // Select the shapes after calculating bounds
   editor.setSelectedShapes(shapeIds as any)
