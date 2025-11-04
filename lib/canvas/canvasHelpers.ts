@@ -1,4 +1,4 @@
-import { Editor, createShapeId } from '@tldraw/tldraw'
+import { Editor, createShapeId, TLShapeId } from '@tldraw/tldraw'
 import { GeneratedImageShape } from './ImageShape'
 
 // Constants
@@ -193,7 +193,7 @@ export function getViewportCenter(editor: Editor): { x: number; y: number } {
  */
 export function focusAndCenterShapes(
   editor: Editor,
-  shapeIds: string[],
+  shapeIds: TLShapeId[],
   animate: boolean = true
 ): void {
   if (!shapeIds || shapeIds.length === 0) return
@@ -401,7 +401,7 @@ export async function addImageToCanvas(
     aspectRatio?: string
     resolution?: string
   }
-): Promise<string> {
+): Promise<TLShapeId> {
   // Get dimensions based on aspect ratio and resolution or calculate from image
   let dimensions: { w: number; h: number }
 
@@ -459,10 +459,10 @@ export function createLoadingPlaceholders(
     promptHistory?: string[] // optional: history of prompts from source images
     sourceImageData?: string // optional: source image for blurred backdrop during regeneration
   }
-): string[] {
+): TLShapeId[] {
   const dimensions = getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution)
   const spacing = 50
-  const shapeIds: string[] = []
+  const shapeIds: TLShapeId[] = []
 
   // Build prompt history: previous history + current prompt
   const newPromptHistory = [...(metadata.promptHistory || []), metadata.prompt]
@@ -606,7 +606,7 @@ export async function addImagesToCanvas(
     aspectRatio?: string
     resolution?: string
   }
-): Promise<string[]> {
+): Promise<TLShapeId[]> {
   const dimensions = metadata?.aspectRatio
     ? getDimensionsFromAspectRatio(metadata.aspectRatio, metadata.resolution || '1K')
     : { w: 1024, h: 1024 }
