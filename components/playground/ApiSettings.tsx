@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Settings, Close, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
+import * as motion from "motion/react-client";
 
 interface ApiSettingsProps {
   isOpen: boolean;

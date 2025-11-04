@@ -199,7 +199,7 @@ export function focusAndCenterShapes(
   if (!shapeIds || shapeIds.length === 0) return
 
   // Select the shapes
-  editor.setSelectedShapes(shapeIds)
+  editor.setSelectedShapes(shapeIds as any)
 
   // Get the bounds of all selected shapes
   const shapes = shapeIds.map(id => editor.getShape(id)).filter(Boolean)
