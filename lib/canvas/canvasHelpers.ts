@@ -200,6 +200,7 @@ export function focusAndCenterShapes(
   if (!shapeIds || shapeIds.length === 0) return
 
   // Select the shapes first
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.setSelectedShapes(shapeIds as any)
 
   // Use requestAnimationFrame to ensure selection is updated
@@ -210,9 +211,6 @@ export function focusAndCenterShapes(
 
     // Get current zoom to maintain it
     const currentZoom = editor.getZoomLevel()
-
-    // Get viewport dimensions to calculate proper insets
-    const viewportScreen = editor.getViewportScreenBounds()
 
     // Calculate insets - add padding for toolbar at bottom
     const insets = {
