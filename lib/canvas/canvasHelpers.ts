@@ -187,7 +187,7 @@ export function getViewportCenter(editor: Editor): { x: number; y: number } {
 
 /**
  * Focus on shapes and center them in the viewport
- * Only pans if shapes are outside the visible viewport
+ * Only pans if shapes are mostly outside the visible viewport
  * @param editor - tldraw editor instance
  * @param shapeIds - array of shape IDs to focus on
  * @param animate - whether to animate the transition (default: true)
@@ -206,22 +206,33 @@ export function focusAndCenterShapes(
   const selectionBounds = editor.getSelectionPageBounds()
   if (!selectionBounds) return
 
-  // Check if selection is visible in viewport
+  // Check if selection center is visible in viewport (with padding)
   const viewport = editor.getViewportPageBounds()
-  const isVisible =
-    selectionBounds.x < viewport.maxX &&
-    selectionBounds.maxX > viewport.x &&
-    selectionBounds.y < viewport.maxY &&
-    selectionBounds.maxY > viewport.y
+  const zoom = editor.getZoomLevel()
+  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
 
-  // Only pan if shapes are not visible
-  if (!isVisible) {
-    const centerX = selectionBounds.x + selectionBounds.width / 2
-    const centerY = selectionBounds.y + selectionBounds.height / 2
+  // Calculate the visible area (accounting for toolbar)
+  const visibleArea = {
+    x: viewport.x,
+    maxX: viewport.maxX,
+    y: viewport.y,
+    maxY: viewport.maxY - toolbarHeightPage,
+  }
 
-    // Account for toolbar height by shifting center up
-    const zoom = editor.getZoomLevel()
-    const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
+  // Calculate selection center
+  const centerX = selectionBounds.x + selectionBounds.width / 2
+  const centerY = selectionBounds.y + selectionBounds.height / 2
+
+  // Check if the center is within the visible area (with some padding)
+  const padding = 100 // require shapes to be at least 100px inside viewport
+  const isCenterVisible =
+    centerX > visibleArea.x + padding &&
+    centerX < visibleArea.maxX - padding &&
+    centerY > visibleArea.y + padding &&
+    centerY < visibleArea.maxY - padding
+
+  // Pan if center is not well within viewport
+  if (!isCenterVisible) {
     const adjustedCenterY = centerY - toolbarHeightPage / 4
 
     // Pan to the center point WITHOUT changing zoom
