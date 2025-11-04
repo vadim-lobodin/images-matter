@@ -110,7 +110,8 @@ export function findEmptySpace(
   let totalY = 0
   let shapeCount = 0
 
-  allShapes.forEach((shape) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  allShapes.forEach((shape: any) => {
     if (shape.props?.w && shape.props?.h) {
       const rightEdge = shape.x + shape.props.w
       if (rightEdge > rightmost) {
