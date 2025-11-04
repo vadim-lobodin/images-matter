@@ -166,7 +166,7 @@ export function FloatingToolbar({
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
       <div className="bg-neutral-100/70 dark:bg-neutral-800/70 rounded-2xl shadow-2xl backdrop-blur-[18px] backdrop-saturate-[1.8]">
         {/* Collapsed view - always visible */}
-        <div className="pb-4">
+        <div>
           {/* Prompt input - full width */}
           <div className="px-1 pt-1">
             <PromptInput
@@ -185,7 +185,7 @@ export function FloatingToolbar({
           </div>
 
           {/* All action buttons in a single row below */}
-          <div className="flex items-center justify-between gap-2 px-4 pt-3">
+          <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-3">
             {/* Left side action buttons */}
             <div className="flex items-center gap-2">
               <motion.button
@@ -279,7 +279,7 @@ export function FloatingToolbar({
               disabled={!prompt.trim()}
               title={buttonLabel}
               className={cn(
-                'p-3 rounded-full font-medium transition-all flex items-center justify-center',
+                'p-3 rounded-full font-medium transition-all flex items-center justify-center -translate-y-2',
                 'bg-primary text-primary-foreground hover:opacity-90',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}

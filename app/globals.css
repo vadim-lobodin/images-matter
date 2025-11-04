@@ -130,19 +130,19 @@
   @apply bg-neutral-900;
 }
 
-/* Tldraw selection color - gray instead of blue */
+/* Tldraw selection color - white with 75% opacity */
 .tl-theme__light {
-  --tl-color-selection-fill: hsl(0, 0%, 45%, 24%) !important; /* neutral-500 with opacity */
-  --tl-color-selection-stroke: #737373 !important; /* neutral-500 */
-  --tl-color-selected: #737373 !important; /* neutral-500 */
-  --tl-color-selected-contrast: #ffffff !important;
+  --tl-color-selection-fill: hsl(0, 0%, 100%, 12%) !important; /* white with low opacity */
+  --tl-color-selection-stroke: hsl(0, 0%, 100%, 75%) !important; /* white 75% */
+  --tl-color-selected: hsl(0, 0%, 100%, 75%) !important; /* white 75% */
+  --tl-color-selected-contrast: #000000 !important;
 }
 
 .tl-theme__dark {
-  --tl-color-selection-fill: hsl(0, 0%, 64%, 20%) !important; /* neutral-400 with opacity */
-  --tl-color-selection-stroke: #a3a3a3 !important; /* neutral-400 */
-  --tl-color-selected: #a3a3a3 !important; /* neutral-400 */
-  --tl-color-selected-contrast: #171717 !important;
+  --tl-color-selection-fill: hsl(0, 0%, 100%, 12%) !important; /* white with low opacity */
+  --tl-color-selection-stroke: hsl(0, 0%, 100%, 75%) !important; /* white 75% */
+  --tl-color-selected: hsl(0, 0%, 100%, 75%) !important; /* white 75% */
+  --tl-color-selected-contrast: #000000 !important;
 }
 
 /* Round corners for all images (including clipboard) */
@@ -184,4 +184,66 @@
 .tl-shape[data-shape-type="image"] div[style*="height"] {
   border-radius: 20px !important;
   overflow: hidden !important;
+}
+
+/* Round corners for image selection indicators */
+.tl-shape[data-shape-type="image"] .tl-selection__fg,
+.tl-shape[data-shape-type="image"] .tl-shape-indicator,
+.tl-shape[data-shape-type="generated-image"] .tl-selection__fg,
+.tl-shape[data-shape-type="generated-image"] .tl-shape-indicator {
+  border-radius: 20px !important;
+}
+
+/* Round corners for SVG selection rectangle - target all rects in image shapes */
+.tl-shape-indicator rect,
+.tl-selection__fg rect,
+.tl-shape[data-shape-type="image"] ~ svg rect,
+svg[class*="tl-"] rect[x][y][width][height]:not([rx]) {
+  rx: 20 !important;
+  ry: 20 !important;
+}
+
+/* Custom radio button styling */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+  background-color: transparent;
+}
+
+input[type="radio"]:hover {
+  border-color: var(--color-ring);
+}
+
+input[type="radio"]:checked {
+  background-color: transparent;
+  border-color: white;
+}
+
+input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.dark input[type="radio"]:checked {
+  background-color: transparent;
+  border-color: white;
+}
+
+.dark input[type="radio"]:checked::after {
+  background-color: white;
 }

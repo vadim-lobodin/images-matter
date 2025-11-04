@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Close, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
+import { CloseLarge, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
 
@@ -146,7 +146,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             className="rounded-full p-1 hover:bg-accent/50 transition-colors"
             aria-label="Close"
           >
-            <Close size={20} className="text-muted-foreground" />
+            <CloseLarge size={20} className="text-muted-foreground" />
           </button>
         </div>
 
@@ -165,7 +165,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                   value="litellm"
                   checked={apiMode === "litellm"}
                   onChange={() => setApiMode("litellm")}
-                  className="w-4 h-4 text-primary"
                 />
                 <span className="text-sm text-foreground">LiteLLM Proxy</span>
               </label>
@@ -176,7 +175,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                   value="gemini"
                   checked={apiMode === "gemini"}
                   onChange={() => setApiMode("gemini")}
-                  className="w-4 h-4 text-primary"
                 />
                 <span className="text-sm text-foreground">Google Gemini API</span>
               </label>
