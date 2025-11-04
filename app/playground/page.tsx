@@ -371,7 +371,7 @@ export default function PlaygroundPage() {
           // All failed - log the error
           console.error('Gemini API request failed:', results[0].reason)
           // Delete all placeholders
-          placeholderIds.forEach(id => editor.deleteShape(id as any))
+          placeholderIds.forEach((id: string) => editor.deleteShape(id as any))
           successfulImages = []
         }
       } else {
