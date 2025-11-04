@@ -76,6 +76,7 @@ function hasOverlap(
 
 /**
  * Find empty space in the viewport for new images
+ * Prioritizes placing images to the right of existing content (Figma-style)
  */
 export function findEmptySpace(
   editor: Editor,
@@ -96,7 +97,45 @@ export function findEmptySpace(
   // Get all existing shapes
   const allShapes = editor.getCurrentPageShapes()
 
-  // Try positions in a grid pattern
+  // If no shapes exist, place in center
+  if (allShapes.length === 0) {
+    return {
+      x: viewport.center.x,
+      y: viewport.center.y - toolbarHeightPage / 2,
+    }
+  }
+
+  // Find the rightmost edge and vertical center of all existing shapes
+  let rightmost = -Infinity
+  let totalY = 0
+  let shapeCount = 0
+
+  allShapes.forEach((shape) => {
+    if (shape.props?.w && shape.props?.h) {
+      const rightEdge = shape.x + shape.props.w
+      if (rightEdge > rightmost) {
+        rightmost = rightEdge
+      }
+      totalY += shape.y + shape.props.h / 2
+      shapeCount++
+    }
+  })
+
+  const centerY = shapeCount > 0 ? totalY / shapeCount : viewport.center.y
+
+  // Try positions to the right of existing content
+  for (let i = 0; i < 10; i++) {
+    const offsetX = SHAPE_SPACING + i * (dimensions.w + SHAPE_SPACING)
+    const newX = rightmost + offsetX
+    const testX = newX - dimensions.w / 2
+    const testY = centerY - dimensions.h / 2
+
+    if (!hasOverlap(testX, testY, dimensions.w, dimensions.h, allShapes)) {
+      return { x: newX, y: centerY }
+    }
+  }
+
+  // If right side is full, try a grid pattern in the viewport
   const gridSize = Math.max(dimensions.w, dimensions.h) + SHAPE_SPACING
   const cols = Math.ceil((usableViewport.maxX - usableViewport.minX) / gridSize)
   const rows = Math.ceil((usableViewport.maxY - usableViewport.minY) / gridSize)
@@ -120,10 +159,10 @@ export function findEmptySpace(
     }
   }
 
-  // Fallback to viewport center if no empty space found
+  // Fallback to the right of rightmost shape (may overlap, but better than nothing)
   return {
-    x: viewport.center.x,
-    y: viewport.center.y - toolbarHeightPage / 2,
+    x: rightmost + SHAPE_SPACING + dimensions.w / 2,
+    y: centerY,
   }
 }
 
@@ -142,6 +181,76 @@ export function getViewportCenter(editor: Editor): { x: number; y: number } {
   return {
     x: viewport.center.x,
     y: viewport.center.y - toolbarHeightPage / 2,
+  }
+}
+
+/**
+ * Focus on shapes and center them in the viewport
+ * @param editor - tldraw editor instance
+ * @param shapeIds - array of shape IDs to focus on
+ * @param animate - whether to animate the transition (default: true)
+ */
+export function focusAndCenterShapes(
+  editor: Editor,
+  shapeIds: string[],
+  animate: boolean = true
+): void {
+  if (!shapeIds || shapeIds.length === 0) return
+
+  // Select the shapes
+  editor.setSelectedShapes(shapeIds)
+
+  // Get the bounds of all selected shapes
+  const shapes = shapeIds.map(id => editor.getShape(id)).filter(Boolean)
+  if (shapes.length === 0) return
+
+  // Calculate the bounding box of all shapes
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+
+  shapes.forEach((shape: any) => {
+    if (shape && shape.x !== undefined && shape.props?.w && shape.props?.h) {
+      minX = Math.min(minX, shape.x)
+      maxX = Math.max(maxX, shape.x + shape.props.w)
+      minY = Math.min(minY, shape.y)
+      maxY = Math.max(maxY, shape.y + shape.props.h)
+    }
+  })
+
+  // Calculate center of the bounding box
+  const centerX = (minX + maxX) / 2
+  const centerY = (minY + maxY) / 2
+
+  // Get current viewport and zoom
+  const viewport = editor.getViewportPageBounds()
+  const currentZoom = editor.getZoomLevel()
+
+  // Account for toolbar height
+  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / currentZoom
+
+  // Calculate camera position to center the shapes (adjusted for toolbar)
+  const adjustedCenterY = centerY - toolbarHeightPage / 2
+  const targetCameraX = -centerX + viewport.width / (2 * currentZoom)
+  const targetCameraY = -adjustedCenterY + viewport.height / (2 * currentZoom)
+
+  // Pan to center on shapes WITHOUT changing zoom
+  if (animate) {
+    editor.setCamera(
+      {
+        x: targetCameraX,
+        y: targetCameraY,
+        z: currentZoom
+      },
+      { animation: { duration: 300 } }
+    )
+  } else {
+    editor.setCamera({
+      x: targetCameraX,
+      y: targetCameraY,
+      z: currentZoom
+    })
   }
 }
 

@@ -29,6 +29,7 @@ const canvasHelpers = {
   getPositionNearSelection: null as any,
   getDimensionsFromAspectRatio: null as any,
   findEmptySpace: null as any,
+  focusAndCenterShapes: null as any,
 }
 
 // Helper to get API credentials from localStorage
@@ -135,6 +136,7 @@ export default function PlaygroundPage() {
         canvasHelpers.getPositionNearSelection = mod.getPositionNearSelection
         canvasHelpers.getDimensionsFromAspectRatio = mod.getDimensionsFromAspectRatio
         canvasHelpers.findEmptySpace = mod.findEmptySpace
+        canvasHelpers.focusAndCenterShapes = mod.focusAndCenterShapes
         setHelpersLoaded(true)
       })
     }
@@ -234,6 +236,9 @@ export default function PlaygroundPage() {
           sourceImageData: isEdit && selectedImages.length > 0 ? selectedImages[0].props.imageData : undefined,
         }
       )
+
+      // Focus and center the loading placeholders immediately
+      canvasHelpers.focusAndCenterShapes(editor, placeholderIds)
 
       // Branch based on API mode
       let requests
@@ -418,7 +423,7 @@ export default function PlaygroundPage() {
     const centerPos = canvasHelpers.getViewportCenter(editor)
     const spacing = 50
 
-    await Promise.all(
+    const shapeIds = await Promise.all(
       images.map((imageData, index) => {
         const offset = (index - (images.length - 1) / 2) * (512 + spacing)
         return canvasHelpers.addImageToCanvas(
@@ -429,6 +434,9 @@ export default function PlaygroundPage() {
         )
       })
     )
+
+    // Focus and center the uploaded images
+    canvasHelpers.focusAndCenterShapes(editor, shapeIds)
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -476,21 +484,27 @@ export default function PlaygroundPage() {
 
     // Add history images to canvas at viewport center
     const centerPos = canvasHelpers.getViewportCenter(editor)
-    await canvasHelpers.addImagesToCanvas(editor, images, centerPos, {
+    const shapeIds = await canvasHelpers.addImagesToCanvas(editor, images, centerPos, {
       prompt: 'From history',
     })
+
+    // Focus and center the images from history
+    canvasHelpers.focusAndCenterShapes(editor, shapeIds)
   }
 
   const handleCanvasDrop = async (imageUrl: string, position: { x: number; y: number }) => {
     if (!editor || !helpersLoaded) return
 
     try {
-      await canvasHelpers.addImageToCanvas(
+      const shapeId = await canvasHelpers.addImageToCanvas(
         editor,
         imageUrl,
         position,
         { prompt: 'From history' }
       )
+
+      // Select the dropped image but don't pan camera (user chose the position)
+      editor.setSelectedShapes([shapeId])
     } catch (err) {
       setError('Failed to add image from history')
       console.error('Error adding dropped image:', err)
