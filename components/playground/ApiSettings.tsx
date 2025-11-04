@@ -6,10 +6,9 @@ import { Settings, Close, View, ViewOff, WarningAlt, Information } from "@carbon
 interface ApiSettingsProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave?: () => void;
 }
 
-export function ApiSettings({ isOpen, onClose, onSave }: ApiSettingsProps) {
+export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
   const [apiMode, setApiMode] = useState<"litellm" | "gemini">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini";
@@ -63,9 +62,8 @@ export function ApiSettings({ isOpen, onClose, onSave }: ApiSettingsProps) {
       localStorage.setItem("gemini_api_key", geminiApiKey.trim());
       setIsSaved(true);
 
-      // Close modal and trigger save callback
-      onClose();
-      onSave?.();
+      // Reload page immediately to apply settings
+      window.location.reload();
     } else {
       // Validate LiteLLM API key
       if (!apiKey || apiKey.trim() === "") {
@@ -98,9 +96,8 @@ export function ApiSettings({ isOpen, onClose, onSave }: ApiSettingsProps) {
       localStorage.setItem("litellm_proxy_url", proxyUrl.trim());
       setIsSaved(true);
 
-      // Close modal and trigger save callback
-      onClose();
-      onSave?.();
+      // Reload page immediately to apply settings
+      window.location.reload();
     }
   };
 
