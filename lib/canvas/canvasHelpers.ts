@@ -201,58 +201,21 @@ export function focusAndCenterShapes(
   // Select the shapes
   editor.setSelectedShapes(shapeIds as any)
 
-  // Get the bounds of all selected shapes
-  const shapes = shapeIds.map(id => editor.getShape(id)).filter(Boolean)
-  if (shapes.length === 0) return
+  // Get the selection bounds
+  const selectionBounds = editor.getSelectionPageBounds()
+  if (!selectionBounds) return
 
-  // Calculate the bounding box of all shapes
-  let minX = Infinity
-  let maxX = -Infinity
-  let minY = Infinity
-  let maxY = -Infinity
+  // Calculate the center point of the selection
+  const centerX = selectionBounds.x + selectionBounds.width / 2
+  const centerY = selectionBounds.y + selectionBounds.height / 2
 
-  shapes.forEach((shape: any) => {
-    if (shape && shape.x !== undefined && shape.props?.w && shape.props?.h) {
-      minX = Math.min(minX, shape.x)
-      maxX = Math.max(maxX, shape.x + shape.props.w)
-      minY = Math.min(minY, shape.y)
-      maxY = Math.max(maxY, shape.y + shape.props.h)
-    }
-  })
+  // Account for toolbar height by shifting center up
+  const zoom = editor.getZoomLevel()
+  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / zoom
+  const adjustedCenterY = centerY - toolbarHeightPage / 4
 
-  // Calculate center of the bounding box
-  const centerX = (minX + maxX) / 2
-  const centerY = (minY + maxY) / 2
-
-  // Get current viewport and zoom
-  const viewport = editor.getViewportPageBounds()
-  const currentZoom = editor.getZoomLevel()
-
-  // Account for toolbar height
-  const toolbarHeightPage = TOOLBAR_HEIGHT_PX / currentZoom
-
-  // Calculate camera position to center the shapes (adjusted for toolbar)
-  const adjustedCenterY = centerY - toolbarHeightPage / 2
-  const targetCameraX = -centerX + viewport.width / (2 * currentZoom)
-  const targetCameraY = -adjustedCenterY + viewport.height / (2 * currentZoom)
-
-  // Pan to center on shapes WITHOUT changing zoom
-  if (animate) {
-    editor.setCamera(
-      {
-        x: targetCameraX,
-        y: targetCameraY,
-        z: currentZoom
-      },
-      { animation: { duration: 300 } }
-    )
-  } else {
-    editor.setCamera({
-      x: targetCameraX,
-      y: targetCameraY,
-      z: currentZoom
-    })
-  }
+  // Pan to the center point WITHOUT changing zoom
+  editor.centerOnPoint(centerX, adjustedCenterY, { animation: animate ? { duration: 300 } : undefined })
 }
 
 /**
