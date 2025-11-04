@@ -435,8 +435,8 @@ export default function PlaygroundPage() {
       })
     )
 
-    // Focus and center the uploaded images
-    canvasHelpers.focusAndCenterShapes(editor, shapeIds)
+    // Select the uploaded images (already at viewport center, no need to pan)
+    editor.setSelectedShapes(shapeIds)
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
