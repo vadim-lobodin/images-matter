@@ -202,17 +202,20 @@ export function focusAndCenterShapes(
   // Select the shapes
   editor.setSelectedShapes(shapeIds as any)
 
-  // Get the selection bounds using tldraw's method
-  const selectionBounds = editor.getSelectionPageBounds()
-  if (!selectionBounds) return
+  // Wait for next frame to ensure selection is updated
+  requestAnimationFrame(() => {
+    // Get the selection bounds using tldraw's method
+    const selectionBounds = editor.getSelectionPageBounds()
+    if (!selectionBounds) return
 
-  // Calculate the center of the selection
-  const centerX = selectionBounds.x + selectionBounds.width / 2
-  const centerY = selectionBounds.y + selectionBounds.height / 2
+    // Calculate the center of the selection
+    const centerX = selectionBounds.x + selectionBounds.width / 2
+    const centerY = selectionBounds.y + selectionBounds.height / 2
 
-  // Pan to center WITHOUT changing zoom
-  editor.centerOnPoint(centerX, centerY, {
-    animation: animate ? { duration: 300 } : undefined
+    // Pan to center WITHOUT changing zoom
+    editor.centerOnPoint(centerX, centerY, {
+      animation: animate ? { duration: 300 } : undefined
+    })
   })
 }
 
