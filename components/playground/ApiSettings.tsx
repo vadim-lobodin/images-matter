@@ -60,6 +60,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
 
       localStorage.setItem("api_mode", "gemini");
       localStorage.setItem("gemini_api_key", geminiApiKey.trim());
+      localStorage.setItem("settings_just_saved", "true");
       setIsSaved(true);
 
       // Reload page immediately to apply settings
@@ -94,6 +95,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
       localStorage.setItem("api_mode", "litellm");
       localStorage.setItem("litellm_api_key", apiKey.trim());
       localStorage.setItem("litellm_proxy_url", proxyUrl.trim());
+      localStorage.setItem("settings_just_saved", "true");
       setIsSaved(true);
 
       // Reload page immediately to apply settings

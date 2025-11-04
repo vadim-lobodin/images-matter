@@ -68,8 +68,23 @@ export default function PlaygroundPage() {
   const [historyCount, setHistoryCount] = useState(0)
   const [historyReloadTrigger, setHistoryReloadTrigger] = useState(0)
   const [helpersLoaded, setHelpersLoaded] = useState(false)
+  const [showSaveToast, setShowSaveToast] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const previousAspectRatioRef = useRef<string | null>(null)
+
+  // Check if settings were just saved and show toast
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const justSaved = localStorage.getItem('settings_just_saved')
+      if (justSaved === 'true') {
+        localStorage.removeItem('settings_just_saved')
+        setShowSaveToast(true)
+        setTimeout(() => {
+          setShowSaveToast(false)
+        }, 3000)
+      }
+    }
+  }, [])
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -678,6 +693,33 @@ export default function PlaygroundPage() {
       />
 
       <ApiSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Toast Notification */}
+      {showSaveToast && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]"
+        >
+          <div className="rounded-lg bg-green-500 px-6 py-3 shadow-lg flex items-center gap-2">
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M5 13l4 4L19 7"></path>
+            </svg>
+            <p className="text-sm font-medium text-white">
+              API credentials saved successfully
+            </p>
+          </div>
+        </motion.div>
+      )}
     </>
   )
 }
