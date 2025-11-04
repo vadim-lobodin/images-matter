@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Close, View, ViewOff, WarningAlt } from "@carbon/icons-react";
+import { Settings, Close, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
 
 interface ApiSettingsProps {
   isOpen: boolean;
@@ -11,9 +11,9 @@ interface ApiSettingsProps {
 export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
   const [apiMode, setApiMode] = useState<"litellm" | "gemini">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("api_mode") as "litellm" | "gemini") || "litellm";
+      return (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini";
     }
-    return "litellm";
+    return "gemini";
   });
   const [apiKey, setApiKey] = useState(() => {
     if (typeof window !== "undefined") {
@@ -36,7 +36,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
   const [showKey, setShowKey] = useState(false);
   const [isSaved, setIsSaved] = useState(() => {
     if (typeof window !== "undefined") {
-      const mode = (localStorage.getItem("api_mode") || "litellm") as "litellm" | "gemini";
+      const mode = (localStorage.getItem("api_mode") || "gemini") as "litellm" | "gemini";
       if (mode === "gemini") {
         return !!localStorage.getItem("gemini_api_key");
       }
@@ -134,19 +134,6 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Warning */}
-          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-4 flex gap-3">
-            <WarningAlt size={20} className="text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                API keys are stored locally in your browser
-              </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                Your API credentials are stored only in your browser&apos;s localStorage and are never sent to any server except the LiteLLM proxy you specify. Clear your browser data to remove them.
-              </p>
-            </div>
-          </div>
-
           {/* API Mode Selection */}
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-foreground">
@@ -188,9 +175,19 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             <>
               {/* API Key Input */}
               <div className="space-y-2">
-                <label htmlFor="api-key" className="block text-sm font-semibold text-foreground">
-                  LiteLLM API Key
-                </label>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="api-key" className="text-sm font-semibold text-foreground">
+                    LiteLLM API Key
+                  </label>
+                  <div className="group relative">
+                    <Information size={16} className="text-muted-foreground cursor-help" />
+                    <div className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-popover border border-border rounded-lg shadow-lg z-50">
+                      <p className="text-xs text-popover-foreground">
+                        Your API credentials are stored only in your browser&apos;s localStorage and are never sent to any server except the LiteLLM proxy you specify.
+                      </p>
+                    </div>
+                  </div>
+                </div>
             <div className="relative">
               <input
                 id="api-key"
@@ -252,9 +249,19 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
           {/* Gemini Mode Fields */}
           {apiMode === "gemini" && (
             <div className="space-y-2">
-              <label htmlFor="gemini-api-key" className="block text-sm font-semibold text-foreground">
-                Google API Key
-              </label>
+              <div className="flex items-center gap-2">
+                <label htmlFor="gemini-api-key" className="text-sm font-semibold text-foreground">
+                  Google API Key
+                </label>
+                <div className="group relative">
+                  <Information size={16} className="text-muted-foreground cursor-help" />
+                  <div className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-popover border border-border rounded-lg shadow-lg z-50">
+                    <p className="text-xs text-popover-foreground">
+                      Your API key is stored only in your browser&apos;s localStorage and is never sent to any server except Google&apos;s Gemini API.
+                    </p>
+                  </div>
+                </div>
+              </div>
               <div className="relative">
                 <input
                   id="gemini-api-key"
