@@ -2,6 +2,7 @@
 
 import { Tldraw, TLComponents, defaultShapeUtils, useEditor, useValue } from '@tldraw/tldraw'
 import { GeneratedImageShapeUtil, GeneratedImageShape } from '@/lib/canvas/ImageShape'
+import { CustomImageToolbar } from './CustomImageToolbar'
 import { useTheme } from 'next-themes'
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import '@tldraw/tldraw/tldraw.css'
@@ -91,6 +92,10 @@ const components: TLComponents = {
   HelpMenu: null,
   ZoomMenu: null,
   MainMenu: null,
+  ImageToolbar: CustomImageToolbar, // Custom toolbar for all image types
+  RichTextToolbar: null, // Hide text toolbar
+  VideoToolbar: null, // Hide video toolbar
+  ContextMenu: null, // Hide right-click context menu
   Background: DottedGrid, // Add custom dotted grid as Background
 }
 

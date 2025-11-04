@@ -225,7 +225,7 @@ export function FloatingToolbar({
                 }`}
                 title={
                   selectedImagesCount > 0
-                    ? 'Aspect ratio control is disabled in edit mode - Gemini matches output to input image size'
+                    ? 'Edit mode uses 1:1 aspect ratio'
                     : `Aspect ratio: ${aspectRatio}`
                 }
               >

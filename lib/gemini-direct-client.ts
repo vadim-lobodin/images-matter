@@ -32,13 +32,13 @@ export interface GeminiImageResponse {
 }
 
 // Strip data URL prefix and extract base64 + mime type
-function stripDataUrlPrefix(dataUrl: string): { mime_type: string; data: string } {
+function stripDataUrlPrefix(dataUrl: string): { mimeType: string; data: string } {
   const match = dataUrl.match(/^data:(image\/[a-z]+);base64,(.+)$/);
   if (match) {
-    return { mime_type: match[1], data: match[2] };
+    return { mimeType: match[1], data: match[2] };
   }
   // Assume PNG if no prefix found
-  return { mime_type: "image/png", data: dataUrl };
+  return { mimeType: "image/png", data: dataUrl };
 }
 
 // Build request body for Gemini API
@@ -76,10 +76,10 @@ function buildGeminiRequest(
   // Add images if provided (for editing)
   if (images && images.length > 0) {
     for (const imageUrl of images) {
-      const { mime_type, data } = stripDataUrlPrefix(imageUrl);
+      const { mimeType, data } = stripDataUrlPrefix(imageUrl);
       parts.push({
-        inline_data: {
-          mime_type,
+        inlineData: {
+          mimeType,
           data, // Base64 without data URL prefix
         },
       });
@@ -119,10 +119,10 @@ function convertGeminiResponse(geminiResponse: any): GeminiImageResponse {
   for (const candidate of candidates) {
     const parts = candidate.content?.parts || [];
     for (const part of parts) {
-      if (part.inline_data) {
+      if (part.inlineData) {
         // Reconstruct data URL with prefix
-        const { mime_type, data } = part.inline_data;
-        images.push(`data:${mime_type};base64,${data}`);
+        const { mimeType, data } = part.inlineData;
+        images.push(`data:${mimeType};base64,${data}`);
       }
       if (part.text) {
         textContent += part.text;

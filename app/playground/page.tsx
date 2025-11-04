@@ -183,6 +183,7 @@ export default function PlaygroundPage() {
 
     try {
       const credentials = getApiCredentials()
+
       if (!credentials) {
         throw new Error('Please configure your API credentials in Settings')
       }
@@ -362,13 +363,21 @@ export default function PlaygroundPage() {
 
           successfulImages = imageUrls
         } else {
-          // All failed
+          // All failed - log the error
+          console.error('Gemini API request failed:', results[0].reason)
           // Delete all placeholders
           placeholderIds.forEach(id => editor.deleteShape(id as any))
           successfulImages = []
         }
       } else {
         // LiteLLM mode returns individual results for each request
+        // Log any failures
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`LiteLLM request ${index + 1} failed:`, result.reason)
+          }
+        })
+
         successfulImages = results
           .map((r) => (r.status === 'fulfilled' ? r.value : null))
           .filter((url): url is string => url !== null)
@@ -394,6 +403,8 @@ export default function PlaygroundPage() {
       // Clear prompt on success
       setPrompt('')
     } catch (err) {
+      console.error('Image generation error:', err)
+      console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace')
       setError(err instanceof Error ? err.message : 'Failed to generate image')
     } finally {
       setActiveGenerationsCount(prev => Math.max(0, prev - 1))
