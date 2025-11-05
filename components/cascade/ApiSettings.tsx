@@ -162,21 +162,21 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 <input
                   type="radio"
                   name="api-mode"
-                  value="litellm"
-                  checked={apiMode === "litellm"}
-                  onChange={() => setApiMode("litellm")}
-                />
-                <span className="text-sm text-foreground">LiteLLM Proxy</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="api-mode"
                   value="gemini"
                   checked={apiMode === "gemini"}
                   onChange={() => setApiMode("gemini")}
                 />
                 <span className="text-sm text-foreground">Google Gemini API</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  value="litellm"
+                  checked={apiMode === "litellm"}
+                  onChange={() => setApiMode("litellm")}
+                />
+                <span className="text-sm text-foreground">LiteLLM Proxy</span>
               </label>
             </div>
           </div>
@@ -239,22 +239,18 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
               </div>
 
               {/* LiteLLM Info */}
-              <div className="rounded-lg bg-muted/50 border border-border p-4">
-                <p className="text-xs text-muted-foreground">
-                  JetBrains proxy:{" "}
-                  <a
-                    href="https://litellm.labs.jb.gg/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    https://litellm.labs.jb.gg/
-                  </a>
-                  {" "}(requires VPN/WiFi).
-                  <br />
-                  Or use your own LiteLLM proxy or switch to Google Gemini API.
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Default: JetBrains proxy at{" "}
+                <a
+                  href="https://litellm.labs.jb.gg/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  https://litellm.labs.jb.gg/
+                </a>
+                {" "}(requires VPN/WiFi). You can also configure your own LiteLLM proxy or switch to Google Gemini API above.
+              </p>
             </>
           )}
 
