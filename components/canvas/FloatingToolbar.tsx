@@ -199,7 +199,7 @@ export function FloatingToolbar({
               </motion.button>
               <button
                 onClick={() => onNumImagesChange(numImages >= 4 ? 1 : numImages + 1)}
-                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
+                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors"
                 title="Number of images to generate"
               >
                 <Image size={20} />
@@ -221,7 +221,7 @@ export function FloatingToolbar({
                 className={`flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors ${
                   selectedImagesCount > 0
                     ? 'opacity-40 cursor-not-allowed'
-                    : 'hover:bg-accent'
+                    : 'hover:bg-white/10'
                 }`}
                 title={
                   selectedImagesCount > 0
@@ -248,7 +248,7 @@ export function FloatingToolbar({
               </button>
               <button
                 onClick={handleImageSizeClick}
-                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-accent transition-colors"
+                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors"
                 title={`Resolution: ${imageSize}`}
               >
                 <FitToWidth size={20} />
@@ -266,7 +266,7 @@ export function FloatingToolbar({
               </button>
               <button
                 onClick={onOpenSettings}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                 title="Settings"
               >
                 <Settings size={20} />
