@@ -95,7 +95,6 @@ const components: TLComponents = {
   ImageToolbar: CustomImageToolbar, // Custom toolbar for all image types
   RichTextToolbar: null, // Hide text toolbar
   VideoToolbar: null, // Hide video toolbar
-  ContextMenu: null, // Hide right-click context menu
   Background: DottedGrid, // Add custom dotted grid as Background
 }
 
