@@ -8,6 +8,7 @@ import { ApiSettings } from '@/components/cascade/ApiSettings'
 import { SelectionBadges } from '@/components/canvas/SelectionBadges'
 import { Row, CloseLarge } from '@carbon/icons-react'
 import * as motion from 'motion/react-client'
+import { toast } from 'sonner'
 import { type ModelKey } from '@/lib/models'
 import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
 import type { Editor, TLShapeId } from '@tldraw/tldraw'
@@ -62,13 +63,11 @@ export default function PlaygroundPage() {
   const [numImages, setNumImages] = useState(1)
   const [selectedImages, setSelectedImages] = useState<GeneratedImageShape[]>([])
   const [activeGenerationsCount, setActiveGenerationsCount] = useState(0)
-  const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [historyCount, setHistoryCount] = useState(0)
   const [historyReloadTrigger, setHistoryReloadTrigger] = useState(0)
   const [helpersLoaded, setHelpersLoaded] = useState(false)
-  const [showSaveToast, setShowSaveToast] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const previousAspectRatioRef = useRef<string | null>(null)
 
@@ -78,10 +77,7 @@ export default function PlaygroundPage() {
       const justSaved = localStorage.getItem('settings_just_saved')
       if (justSaved === 'true') {
         localStorage.removeItem('settings_just_saved')
-        setShowSaveToast(true)
-        setTimeout(() => {
-          setShowSaveToast(false)
-        }, 3000)
+        toast.success('API credentials saved successfully')
       }
     }
   }, [])
@@ -191,12 +187,11 @@ export default function PlaygroundPage() {
 
   const handleGenerate = async () => {
     if (!editor || !helpersLoaded) {
-      setError('Canvas is still loading, please wait...')
+      toast.error('Canvas is still loading, please wait...')
       return
     }
 
     setActiveGenerationsCount(prev => prev + 1)
-    setError(null)
 
     try {
       const credentials = getApiCredentials()
@@ -409,7 +404,7 @@ export default function PlaygroundPage() {
 
       // Show warning if some generations failed
       if (successfulImages.length < numImages) {
-        setError(`Generated ${successfulImages.length}/${numImages} images. Some requests failed.`)
+        toast.warning(`Generated ${successfulImages.length}/${numImages} images. Some requests failed.`)
       }
 
       // Save to history
@@ -423,9 +418,32 @@ export default function PlaygroundPage() {
       // Clear prompt on success
       setPrompt('')
     } catch (err) {
-      console.error('Image generation error:', err)
-      console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace')
-      setError(err instanceof Error ? err.message : 'Failed to generate image')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate image'
+      
+      // Only log unexpected errors to console (not user-facing errors like missing credentials)
+      const isUserFacingError = errorMessage.includes('credentials') || 
+                                errorMessage.includes('Settings') || 
+                                errorMessage.includes('API key') ||
+                                errorMessage.includes('Canvas is still loading')
+      
+      if (!isUserFacingError) {
+        console.error('Image generation error:', err)
+        console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace')
+      }
+      
+      // Show error with action button if it's a credentials/settings error
+      if (errorMessage.includes('credentials') || 
+          errorMessage.includes('Settings') || 
+          errorMessage.includes('API key')) {
+        toast.error(errorMessage, {
+          action: {
+            label: 'Open Settings',
+            onClick: () => setShowSettings(true),
+          },
+        })
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setActiveGenerationsCount(prev => Math.max(0, prev - 1))
     }
@@ -467,7 +485,7 @@ export default function PlaygroundPage() {
       file.type.includes('svg')
     )
     if (excludedSvgs.length > 0) {
-      setError(
+      toast.error(
         `SVG files are not supported. Please upload raster images (PNG, JPG, WebP, etc.).\n\n` +
         `Excluded ${excludedSvgs.length} SVG file${excludedSvgs.length > 1 ? 's' : ''}.`
       )
@@ -521,7 +539,7 @@ export default function PlaygroundPage() {
       // Select the dropped image but don't pan camera (user chose the position)
       editor.setSelectedShapes([shapeId])
     } catch (err) {
-      setError('Failed to add image from history')
+      toast.error('Failed to add image from history')
       console.error('Error adding dropped image:', err)
     }
   }
@@ -652,43 +670,6 @@ export default function PlaygroundPage() {
         className="hidden"
       />
 
-      {/* Error notification */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md w-full px-4"
-        >
-          <div className="rounded-lg bg-card border border-border p-4 shadow-lg">
-            <p className="text-sm text-foreground font-semibold mb-2">Error</p>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{error}</p>
-            {(error.includes('credentials') ||
-              error.includes('Settings') ||
-              error.includes('API key') ||
-              error.includes('VPN') ||
-              error.includes('Network') ||
-              error.includes('proxy')) && (
-              <button
-                onClick={() => {
-                  setShowSettings(true)
-                  setError(null)
-                }}
-                className="mt-3 px-3 py-1.5 text-sm text-foreground bg-accent hover:bg-accent/80 rounded-md transition-colors"
-              >
-                Open Settings
-              </button>
-            )}
-            <button
-              onClick={() => setError(null)}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground text-xl"
-            >
-              ×
-            </button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Modals */}
       <HistoryModal
         isOpen={showHistory}
@@ -698,33 +679,6 @@ export default function PlaygroundPage() {
       />
 
       <ApiSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
-
-      {/* Toast Notification */}
-      {showSaveToast && (
-        <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[100]"
-        >
-          <div className="rounded-lg bg-card border border-border px-6 py-3 shadow-lg flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-foreground"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path d="M5 13l4 4L19 7"></path>
-            </svg>
-            <p className="text-sm font-medium text-foreground">
-              API credentials saved successfully
-            </p>
-          </div>
-        </motion.div>
-      )}
     </>
   )
 }

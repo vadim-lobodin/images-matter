@@ -249,7 +249,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 >
                   https://litellm.labs.jb.gg/
                 </a>
-                {" "}(requires VPN/WiFi). You can also configure your own LiteLLM proxy or switch to Google Gemini API above.
+                {" "}(requires VPN/WiFi).
               </p>
             </>
           )}
@@ -302,7 +302,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 >
                   Google AI Studio
                 </a>
-                . Direct connection to Google&apos;s Gemini API.
+                .
               </p>
             </div>
           )}
