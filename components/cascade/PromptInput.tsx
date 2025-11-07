@@ -9,6 +9,7 @@ interface PromptInputProps {
   placeholder?: string;
   maxLength?: number;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onSubmit?: () => void;
   animationKey?: string | number;
   isMounted?: boolean;
 }
@@ -19,6 +20,7 @@ export function PromptInput({
   placeholder = "Describe the image you want to generate...",
   maxLength = 4000,
   onKeyDown,
+  onSubmit,
   animationKey,
   isMounted = true,
 }: PromptInputProps) {
@@ -37,6 +39,13 @@ export function PromptInput({
   }, [animationKey]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Handle Enter key: send prompt if Enter (without Shift), line break if Shift+Enter
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSubmit?.();
+      return;
+    }
+
     // Mark that we should refocus after the key event causes a re-render
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       shouldFocusRef.current = true;

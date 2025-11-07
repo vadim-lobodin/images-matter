@@ -173,6 +173,7 @@ export function FloatingToolbar({
               value={prompt}
               onChange={onPromptChange}
               onKeyDown={handleKeyDown}
+              onSubmit={handleGenerate}
               placeholder={
                 selectedImagesCount > 0
                   ? `Describe how to edit the selected image${selectedImagesCount > 1 ? 's' : ''}...`
