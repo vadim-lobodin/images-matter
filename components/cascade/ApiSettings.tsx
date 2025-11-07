@@ -249,7 +249,7 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
                 >
                   https://litellm.labs.jb.gg/
                 </a>
-                {" "}(requires VPN/WiFi).
+                {" "}(requires JetBrains Team WiFi).
               </p>
             </>
           )}
