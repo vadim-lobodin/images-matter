@@ -252,6 +252,7 @@ export default function PlaygroundPage() {
 
       // Branch based on API mode
       let requests
+      const errorMessages: string[] = []
 
       if (credentials.mode === 'gemini') {
         // Use direct Gemini API
@@ -321,7 +322,9 @@ export default function PlaygroundPage() {
               throw new Error('No image in response')
             })
             .catch((error) => {
-              console.error(`Request ${index + 1}/${numImages} failed:`, error)
+              const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+              console.error(`Request ${index + 1}/${numImages} failed:`, errorMsg)
+              errorMessages.push(errorMsg)
               if (index < placeholderIds.length) {
                 editor.deleteShape(placeholderIds[index] as any)
               }
@@ -378,33 +381,32 @@ export default function PlaygroundPage() {
 
           successfulImages = imageUrls
         } else {
-          // All failed - log the error
-          console.error('Gemini API request failed:', results[0].reason)
+          // All failed - capture the error message
+          const error = results[0].reason
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+          console.error('Gemini API request failed:', errorMsg)
+          errorMessages.push(errorMsg)
           // Delete all placeholders
           placeholderIds.forEach((id: string) => editor.deleteShape(id as any))
           successfulImages = []
         }
       } else {
         // LiteLLM mode returns individual results for each request
-        // Log any failures
-        results.forEach((result, index) => {
-          if (result.status === 'rejected') {
-            console.error(`LiteLLM request ${index + 1} failed:`, result.reason)
-          }
-        })
-
         successfulImages = results
           .map((r) => (r.status === 'fulfilled' ? r.value : null))
           .filter((url): url is string => url !== null)
       }
 
       if (successfulImages.length === 0) {
-        throw new Error('All image generation requests failed')
+        // Show the actual error message from the API
+        const detailedError = errorMessages.length > 0 ? errorMessages[0] : 'All image generation requests failed'
+        throw new Error(detailedError)
       }
 
-      // Show warning if some generations failed
+      // Show warning with error details if some generations failed
       if (successfulImages.length < numImages) {
-        toast.warning(`Generated ${successfulImages.length}/${numImages} images. Some requests failed.`)
+        const errorDetail = errorMessages.length > 0 ? `\nError: ${errorMessages[0]}` : ''
+        toast.warning(`Generated ${successfulImages.length}/${numImages} images. Some requests failed.${errorDetail}`)
       }
 
       // Save to history

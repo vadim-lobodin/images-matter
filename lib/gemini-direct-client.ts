@@ -181,7 +181,7 @@ async function makeSingleGeminiRequest(
   } catch (error) {
     console.error('Network error:', error);
     throw new Error(
-      "❌ Network Connection Failed\n\n" +
+      "Network Connection Failed\n\n" +
       "Cannot reach Google Gemini API.\n\n" +
       "Please:\n" +
       "1. Check your network connection\n" +
@@ -192,20 +192,39 @@ async function makeSingleGeminiRequest(
 
   // Handle error responses
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    let errorData: any = {};
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      // Failed to parse JSON, use default error
+      console.error('Failed to parse error response:', e);
+    }
 
-    let errorMessage = errorData.error?.message || `API error: ${response.status} ${response.statusText}`;
+    // Extract error message from various possible locations in the response
+    let errorMessage =
+      errorData.error?.message ||
+      errorData.message ||
+      errorData.detail ||
+      `API error: ${response.status} ${response.statusText}`;
 
+    // Provide user-friendly messages for common errors
     if (response.status === 401 || response.status === 403) {
-      errorMessage = "Authentication failed. Please check your Google API key in Settings.";
+      errorMessage = "Authentication Failed\n\nYour Google API key is invalid or expired.\n\nPlease check your API key in Settings.";
     } else if (response.status === 404) {
-      errorMessage = "API endpoint not found. The model may not be available.";
+      errorMessage = "Model Not Found\n\nThe model may not be available or accessible with your API key.";
     } else if (response.status === 429) {
-      errorMessage = "Rate limit exceeded. Please try again later.";
-    } else if (response.status === 400 && errorData.error?.message) {
-      errorMessage = errorData.error.message;
+      errorMessage = "Rate Limit Exceeded\n\nToo many requests. Please try again in a few moments.";
+    } else if (response.status === 400) {
+      // For 400 errors, use the specific error message from the API
+      if (errorData.error?.message) {
+        errorMessage = `Bad Request\n\n${errorData.error.message}`;
+      } else if (errorData.message) {
+        errorMessage = `Bad Request\n\n${errorData.message}`;
+      } else {
+        errorMessage = "Bad Request\n\nThe request was invalid. Please check your settings and try again.";
+      }
     } else if (response.status >= 500) {
-      errorMessage = "Server error. Please try again later.";
+      errorMessage = "Server Error\n\nThe API server encountered an error. Please try again later.";
     }
 
     throw new Error(errorMessage);

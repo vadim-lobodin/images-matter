@@ -67,7 +67,7 @@ async function makeLiteLLMRequest(
 
     if (isJetBrainsProxy) {
       throw new Error(
-        "❌ Network Connection Failed\n\n" +
+        "Network Connection Failed\n\n" +
         "Cannot reach LiteLLM proxy. Most likely you are NOT connected to JetBrains VPN.\n\n" +
         "Please:\n" +
         "1. Connect to JetBrains Team VPN\n" +
@@ -76,7 +76,7 @@ async function makeLiteLLMRequest(
       );
     } else {
       throw new Error(
-        "❌ Network Connection Failed\n\n" +
+        "Network Connection Failed\n\n" +
         "Cannot reach the API endpoint.\n\n" +
         "Please:\n" +
         "1. Verify your API URL in Settings\n" +
@@ -88,20 +88,39 @@ async function makeLiteLLMRequest(
 
   // Handle error responses
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    let errorData: any = {};
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      // Failed to parse JSON, use default error
+      console.error('Failed to parse error response:', e);
+    }
 
-    let errorMessage = errorData.error?.message || `API error: ${response.status} ${response.statusText}`;
+    // Extract error message from various possible locations in the response
+    let errorMessage =
+      errorData.error?.message ||
+      errorData.message ||
+      errorData.detail ||
+      `API error: ${response.status} ${response.statusText}`;
 
+    // Provide user-friendly messages for common errors
     if (response.status === 401 || response.status === 403) {
-      errorMessage = "Authentication failed. Please check your API key in Settings.";
+      errorMessage = "Authentication Failed\n\nYour API key is invalid or expired.\n\nPlease check your API key in Settings.";
     } else if (response.status === 404) {
-      errorMessage = "API endpoint not found. Please check your proxy URL in Settings or verify the model is available.";
+      errorMessage = "Endpoint Not Found\n\nThe API endpoint or model may not be available.\n\nPlease check your proxy URL in Settings.";
     } else if (response.status === 429) {
-      errorMessage = "Rate limit exceeded. Please try again later.";
-    } else if (response.status === 400 && errorData.error?.message) {
-      errorMessage = errorData.error.message;
+      errorMessage = "Rate Limit Exceeded\n\nToo many requests. Please try again in a few moments.";
+    } else if (response.status === 400) {
+      // For 400 errors, use the specific error message from the API
+      if (errorData.error?.message) {
+        errorMessage = `Bad Request\n\n${errorData.error.message}`;
+      } else if (errorData.message) {
+        errorMessage = `Bad Request\n\n${errorData.message}`;
+      } else {
+        errorMessage = "Bad Request\n\nThe request was invalid. Please check your settings and try again.";
+      }
     } else if (response.status >= 500) {
-      errorMessage = "Server error. Please try again later or contact support.";
+      errorMessage = "Server Error\n\nThe API server encountered an error. Please try again later.";
     }
 
     throw new Error(errorMessage);
