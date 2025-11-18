@@ -4,12 +4,35 @@ A Next.js application for generating and editing images using Google Gemini AI m
 
 ## Features
 
-- 🎨 **Generate Images**: Create images from text prompts using Gemini 2.5 Flash Image
-- ✏️ **Edit Images**: Modify existing images with AI guidance (supports up to 4 input images)
-- ⚙️ **Flexible Configuration**: Configure aspect ratios (1:1, 3:4, 4:3, 9:16, 16:9) and resolution (1K, 2K)
-- 🔐 **User-Provided Credentials**: Bring your own LiteLLM proxy and API key
-- 💾 **Generation History**: Track your creations with IndexedDB-based storage
-- 🔄 **Reuse Images**: Use generated images as input for editing
+### 🎨 Image Generation & Editing
+- **Text-to-Image**: Create stunning images from detailed text descriptions
+- **Image Editing**: Modify existing images with AI guidance (up to 4 input images)
+- **Batch Generation**: Generate 1-4 images simultaneously
+- **Multi-Resolution**: Choose between 1K (1024×1024) and 2K (2048×2048)
+- **Flexible Aspect Ratios**: 1:1, 3:4, 4:3, 9:16, 16:9
+
+### 🖼️ Interactive Canvas
+- **Infinite Canvas**: Powered by tldraw for smooth, intuitive interactions
+- **Visual Organization**: Drag, arrange, and organize generated images
+- **Multi-Selection**: Select multiple images for batch editing
+- **Zoom & Pan**: Navigate large collections with ease
+
+### ⌨️ Productivity Features
+- **Keyboard Shortcuts**: Enter to submit, Shift+Enter for line breaks
+- **Prompt History**: Navigate previous prompts with Arrow keys
+- **Auto-Save**: All prompts automatically saved to local history
+- **Smart Context**: Interface adapts based on generate vs edit mode
+
+### 🔐 Privacy & Security
+- **Client-Side Storage**: Credentials stored only in your browser
+- **Your Own Proxy**: Connect to your LiteLLM proxy instance
+- **No Data Collection**: All processing happens through your configured proxy
+- **Local History**: Generation history stored in browser IndexedDB
+
+### 💾 History & Management
+- **Persistent Storage**: Track all your creations locally
+- **Quick Restore**: Click history items to restore prompts and settings
+- **Image Reuse**: Use generated images as input for further editing
 
 ## Tech Stack
 
@@ -76,20 +99,62 @@ Credentials are stored securely in your browser's localStorage and are never sen
 
 ## Usage
 
+### Interface Overview
+
+The application features a clean, floating toolbar at the bottom of the screen with:
+
+**Prompt Input**
+- Large text area for describing your image
+- Supports multi-line prompts (Shift+Enter for new lines)
+- Auto-saves to prompt history
+
+**Toolbar Controls** (left to right)
+- **+ Button**: Upload reference images for editing
+- **Image Count** (🖼️ #): Cycle through 1-4 images to generate
+- **Aspect Ratio** (📄): Toggle between 1:1, 3:4, 4:3, 9:16, 16:9
+- **Resolution** (↔️): Switch between 1K and 2K image sizes
+- **Settings** (⚙️): Configure API credentials
+- **Generate/Edit** (↑): Submit prompt (also triggered by Enter key)
+
 ### Generate Mode
 
-1. Select a model (default: Gemini 2.5 Flash Image)
-2. Enter a text prompt describing the image you want
-3. Configure aspect ratio and image size
-4. Click **Generate**
+1. Enter a text prompt describing the image you want to create
+2. Select the number of images to generate (1-4)
+3. Choose your aspect ratio (disabled when editing selected images)
+4. Choose resolution (1K or 2K)
+5. Press **Enter** or click the arrow button to generate
+
+**Example prompts:**
+- "A serene mountain landscape at sunset with vibrant orange and purple skies"
+- "A futuristic cityscape with flying cars and neon lights"
+- "A cozy coffee shop interior with warm lighting and vintage furniture"
 
 ### Edit Mode
 
-1. Switch to the **Edit** tab
-2. Upload up to 4 input images
-3. Enter a prompt describing how you want to modify the images
-4. Configure output settings
-5. Click **Edit**
+1. Select one or more generated images on the canvas
+2. Click the **+ button** to upload reference images (optional)
+3. Enter a prompt describing the changes you want
+4. Configure the number of output images and resolution
+5. Press **Enter** or click the arrow button to edit
+
+**Note:** When images are selected, aspect ratio is locked to 1:1 for compatibility.
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| **Enter** | Submit the prompt and generate/edit images |
+| **Shift+Enter** | Insert a line break in the prompt |
+| **Arrow Up** | Navigate to previous prompt in history |
+| **Arrow Down** | Navigate to next prompt in history |
+
+### Canvas Interactions
+
+- **Click & Drag**: Move images around the canvas
+- **Click**: Select/deselect images
+- **Multi-select**: Click multiple images to select them for editing
+- **Zoom**: Use mouse wheel or pinch gestures
+- **Pan**: Click and drag on empty canvas space
 
 ### History
 
@@ -133,10 +198,59 @@ npm run lint
 
 ## Architecture
 
-- **Frontend**: React components in \`app/\` and \`components/\`
-- **API Routes**: \`/api/images/generate\` and \`/api/images/edit\`
-- **LiteLLM Client**: \`lib/litellm-client.ts\` - handles API communication
-- **Storage**: IndexedDB via \`components/playground/GenerationHistory.tsx\`
+### Project Structure
+
+\`\`\`
+app/
+├── cascade/
+│   ├── page.tsx              # Main playground page
+│   └── layout.tsx            # Cascade-specific layout
+├── api/
+│   └── cascade/
+│       ├── generate/         # Image generation endpoint
+│       └── gemini-direct/    # Direct Gemini API endpoint
+├── globals.css               # Global styles
+└── layout.tsx                # Root layout with theme provider
+
+components/
+├── canvas/
+│   ├── TldrawCanvas.tsx      # Infinite canvas component
+│   ├── FloatingToolbar.tsx   # Main UI toolbar (prompt + controls)
+│   ├── HistoryModal.tsx      # Generation history viewer
+│   └── SelectionBadges.tsx   # Selected image indicators
+├── cascade/
+│   ├── PromptInput.tsx       # Multi-line prompt input with shortcuts
+│   ├── ApiSettings.tsx       # Settings modal for API configuration
+│   └── ModelSelector.tsx     # Model selection dropdown
+└── ui/                       # Reusable UI components (buttons, etc.)
+
+lib/
+├── canvas/
+│   ├── ImageShape.tsx        # Custom tldraw shape for images
+│   └── canvasHelpers.ts      # Canvas utility functions
+├── gemini-direct-client.ts   # Direct Gemini API client
+├── litellm-client.ts         # LiteLLM proxy client
+└── models.ts                 # Model configuration & types
+\`\`\`
+
+### Data Flow
+
+1. **User Input** → \`FloatingToolbar\` receives prompt and parameters
+2. **Submission** → \`page.tsx\` handles generation logic
+3. **API Call** → Either LiteLLM proxy or direct Gemini API
+4. **Response** → Images rendered on \`TldrawCanvas\` as custom shapes
+5. **Storage** → Generation metadata saved to IndexedDB
+6. **History** → Accessible via \`HistoryModal\`
+
+### Key Technologies
+
+- **Next.js 15**: App Router with React Server Components
+- **React 19**: Latest features including concurrent rendering
+- **tldraw**: Infinite canvas library for image manipulation
+- **Motion**: Framer Motion for smooth animations
+- **IndexedDB**: Client-side database for history
+- **Tailwind CSS v4**: Utility-first styling
+- **TypeScript**: Full type safety throughout
 
 ## Security
 

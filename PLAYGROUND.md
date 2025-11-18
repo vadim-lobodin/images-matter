@@ -84,15 +84,76 @@ Navigate to `http://localhost:3000/playground`
 - **Max Images**: 1
 - **Modes**: Generate only
 
+## User Interface
+
+### Floating Toolbar
+
+The main interface is a sleek floating toolbar positioned at the bottom center of the screen with the following components:
+
+#### Prompt Input
+- **Multi-line text area** for entering detailed descriptions
+- **Character limit**: 4000 characters
+- **Smart placeholder**: Changes context based on mode (generate vs edit)
+- **History navigation**: Use Arrow Up/Down to browse previous prompts
+
+#### Control Buttons
+
+| Button | Icon | Function | Notes |
+|--------|------|----------|-------|
+| **Upload** | ➕ | Add reference images for editing | Opens file picker (PNG, JPEG, WebP, GIF) |
+| **Image Count** | 🖼️ # | Set number of images to generate | Cycles 1→2→3→4→1 |
+| **Aspect Ratio** | 📄 | Toggle aspect ratio | 1:1, 3:4, 4:3, 9:16, 16:9 (disabled in edit mode) |
+| **Resolution** | ↔️ | Switch image resolution | 1K (1024×1024) or 2K (2048×2048) |
+| **Settings** | ⚙️ | Configure API credentials | Opens settings modal |
+| **Submit** | ↑ | Generate or edit images | Also triggered by Enter key |
+
+#### Keyboard Shortcuts
+
+| Shortcut | Action | Context |
+|----------|--------|---------|
+| **Enter** | Submit prompt | Generate or edit images |
+| **Shift + Enter** | New line | Add line break in prompt |
+| **Arrow Up** | Previous prompt | Navigate history (older) |
+| **Arrow Down** | Next prompt | Navigate history (newer) |
+
+### Canvas Workspace
+
+The main workspace is an infinite canvas powered by tldraw where generated images appear as interactive objects.
+
+**Canvas Interactions:**
+- **Left-click + drag**: Move images
+- **Left-click**: Select/deselect images
+- **Multi-select**: Click multiple images for batch editing
+- **Scroll wheel**: Zoom in/out
+- **Middle-click + drag**: Pan the canvas
+
 ## Usage Examples
 
 ### Image Generation
 
-1. Select "Generate" mode
-2. Choose a model (e.g., DALL-E 3)
-3. Enter a detailed prompt
-4. Configure parameters (size, quality, style)
-5. Click "Generate"
+1. Enter a detailed prompt in the text area
+2. Set the number of images to generate (1-4)
+3. Choose your preferred aspect ratio
+4. Select resolution (1K or 2K)
+5. Press **Enter** or click the **↑** button
+
+**Example Prompts:**
+```
+A serene Japanese garden with a wooden bridge over a koi pond, 
+cherry blossoms in full bloom, soft morning light filtering through the trees
+
+A cyberpunk street market at night, neon signs reflected in wet pavement, 
+vendors selling futuristic tech, rain falling, vibrant colors
+
+Cozy library with floor-to-ceiling bookshelves, leather armchair by the fireplace, 
+warm golden lighting, vintage globe, steaming cup of tea on side table
+```
+
+**Tips for Better Results:**
+- Be specific about lighting, mood, and style
+- Include details about composition and perspective
+- Use descriptive adjectives for colors and textures
+- Specify the time of day or weather conditions
 
 ### Image Editing
 

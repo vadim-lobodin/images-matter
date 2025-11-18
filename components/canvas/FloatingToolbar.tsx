@@ -164,7 +164,7 @@ export function FloatingToolbar({
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
-      <div className="bg-neutral-100/70 dark:bg-neutral-800/70 rounded-2xl shadow-2xl backdrop-blur-[18px] backdrop-saturate-[1.8]">
+      <div className="bg-card dark:bg-card rounded-2xl shadow-2xl backdrop-blur-xl border border-border">
         {/* Collapsed view - always visible */}
         <div>
           {/* Prompt input - full width */}
