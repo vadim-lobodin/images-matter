@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth, MachineLearningModel } from '@carbon/icons-react'
+import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth, AiLabel, AiGenerate } from '@carbon/icons-react'
 import { PromptInput } from '@/components/cascade/PromptInput'
 import { cn } from '@/lib/utils'
 import { type ModelKey, AVAILABLE_MODELS, getModelsForApiMode } from '@/lib/models'
@@ -205,24 +205,6 @@ export function FloatingToolbar({
                 <AddLarge size={20} />
               </motion.button>
               <button
-                onClick={() => onNumImagesChange(numImages >= 4 ? 1 : numImages + 1)}
-                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors"
-                title="Number of images to generate"
-              >
-                <Image size={20} />
-                <span className="text-sm font-medium tabular-nums inline-block overflow-hidden">
-                  <motion.span
-                    key={numImages}
-                    initial={isMounted ? { y: 20, opacity: 0 } : false}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className="inline-block"
-                  >
-                    {numImages}
-                  </motion.span>
-                </span>
-              </button>
-              <button
                 onClick={() => {
                   if (availableModelKeys.length <= 1) return
                   const currentIndex = availableModelKeys.indexOf(model)
@@ -237,7 +219,11 @@ export function FloatingToolbar({
                 }`}
                 title={availableModelKeys.length <= 1 ? 'Only one model available' : `Model: ${modelConfig?.name || model}`}
               >
-                <MachineLearningModel size={20} />
+                {model.includes('gemini-3') ? (
+                  <AiGenerate size={20} />
+                ) : (
+                  <AiLabel size={20} />
+                )}
                 <span className="text-sm font-medium inline-block overflow-hidden">
                   <motion.span
                     key={model}
@@ -247,6 +233,24 @@ export function FloatingToolbar({
                     className="inline-block"
                   >
                     {modelConfig?.shortName || modelConfig?.name || model}
+                  </motion.span>
+                </span>
+              </button>
+              <button
+                onClick={() => onNumImagesChange(numImages >= 4 ? 1 : numImages + 1)}
+                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors"
+                title="Number of images to generate"
+              >
+                <Image size={20} />
+                <span className="text-sm font-medium tabular-nums inline-block overflow-hidden">
+                  <motion.span
+                    key={numImages}
+                    initial={isMounted ? { y: 20, opacity: 0 } : false}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="inline-block"
+                  >
+                    {numImages}
                   </motion.span>
                 </span>
               </button>

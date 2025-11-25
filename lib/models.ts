@@ -15,7 +15,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
   "vertex_ai/gemini-2.5-flash-image": {
     name: "Gemini 2.5 Flash",
     provider: "Google",
-    shortName: "2.5 Flash",
+    shortName: "Gemini 2.5",
     aspectRatios: ["1:1"],
     imageSizes: ["1K"],
     maxImages: 4,
@@ -25,7 +25,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
   "gemini-2.5-flash-image": {
     name: "Gemini 2.5 Flash",
     provider: "Google",
-    shortName: "2.5 Flash",
+    shortName: "Gemini 2.5",
     aspectRatios: ["1:1"],
     imageSizes: ["1K"],
     maxImages: 4,
@@ -34,7 +34,7 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
   "gemini-3-pro-image-preview": {
     name: "Gemini 3 Pro",
     provider: "Google",
-    shortName: "3 Pro",
+    shortName: "Gemini 3",
     aspectRatios: ["21:9", "16:9", "4:3", "3:2", "5:4", "1:1", "4:5", "2:3", "3:4", "9:16"],
     imageSizes: ["1K", "2K", "4K"],
     maxImages: 4,
