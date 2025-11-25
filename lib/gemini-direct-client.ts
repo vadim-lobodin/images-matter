@@ -46,8 +46,10 @@ function buildGeminiRequest(
   prompt: string,
   images: string[] | undefined,
   aspectRatio: string | undefined,
+  imageSize: string | undefined,
   promptHistory: string[] | undefined,
-  imageIds: number[] | undefined
+  imageIds: number[] | undefined,
+  modelName: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   // Build enhanced prompt with history context (similar to LiteLLM client)
@@ -92,10 +94,23 @@ function buildGeminiRequest(
     responseModalities: ["Text", "Image"],
   };
 
+  // Build image config with aspect ratio and size
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const imageConfig: any = {};
+
   if (aspectRatio) {
-    generationConfig.imageConfig = {
-      aspectRatio: aspectRatio,
-    };
+    imageConfig.aspectRatio = aspectRatio;
+  }
+
+  // image_size parameter only supported by Gemini 3
+  // Gemini 2.x ignores this and uses default 1024px
+  const isGemini3 = modelName.includes('gemini-3');
+  if (imageSize && isGemini3) {
+    imageConfig.image_size = imageSize;
+  }
+
+  if (Object.keys(imageConfig).length > 0) {
+    generationConfig.imageConfig = imageConfig;
   }
 
   return {
@@ -149,6 +164,7 @@ async function makeSingleGeminiRequest(
   apiKey: string,
   images: string[] | undefined,
   aspectRatio: string | undefined,
+  imageSize: string | undefined,
   promptHistory: string[] | undefined,
   imageIds: number[] | undefined
 ): Promise<GeminiImageResponse> {
@@ -165,7 +181,7 @@ async function makeSingleGeminiRequest(
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   // Build request body
-  const requestBody = buildGeminiRequest(prompt, images, aspectRatio, promptHistory, imageIds);
+  const requestBody = buildGeminiRequest(prompt, images, aspectRatio, imageSize, promptHistory, imageIds, modelName);
 
   // Make network request
   let response;
@@ -224,9 +240,14 @@ async function makeSingleGeminiRequest(
         errorMessage = "Bad Request\n\nThe request was invalid. Please check your settings and try again.";
       }
     } else if (response.status >= 500) {
-      errorMessage = "Server Error\n\nThe API server encountered an error. Please try again later.";
+      // For 500 errors, include the actual error message if available
+      const serverError = errorData.error?.message || errorData.message || '';
+      errorMessage = serverError
+        ? `Server Error (${response.status})\n\n${serverError}`
+        : `Server Error (${response.status})\n\nThe API server encountered an error. Please try again later.`;
     }
 
+    console.error('Gemini API error:', response.status, errorData);
     throw new Error(errorMessage);
   }
 
@@ -239,16 +260,16 @@ async function makeSingleGeminiRequest(
 export async function generateGeminiImage(
   request: GeminiImageRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, model, prompt, aspectRatio, numImages = 1 } = request;
+  const { apiKey, model, prompt, aspectRatio, imageSize, numImages = 1 } = request;
 
   if (numImages === 1) {
     // Single image - simple request
-    return makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, undefined, undefined);
+    return makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, imageSize, undefined, undefined);
   }
 
   // Multiple images - make parallel requests
   const requests = Array.from({ length: numImages }, () =>
-    makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, undefined, undefined)
+    makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, imageSize, undefined, undefined)
   );
 
   const results = await Promise.allSettled(requests);
@@ -287,16 +308,16 @@ export async function generateGeminiImage(
 export async function editGeminiImage(
   request: GeminiImageEditRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, model, prompt, images, imageIds, promptHistory, aspectRatio, numImages = 1 } = request;
+  const { apiKey, model, prompt, images, imageIds, promptHistory, aspectRatio, imageSize, numImages = 1 } = request;
 
   if (numImages === 1) {
     // Single image - simple request
-    return makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, promptHistory, imageIds);
+    return makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, imageSize, promptHistory, imageIds);
   }
 
   // Multiple images - make parallel requests
   const requests = Array.from({ length: numImages }, () =>
-    makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, promptHistory, imageIds)
+    makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, imageSize, promptHistory, imageIds)
   );
 
   const results = await Promise.allSettled(requests);

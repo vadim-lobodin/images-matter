@@ -9,7 +9,7 @@ import { SelectionBadges } from '@/components/canvas/SelectionBadges'
 import { Row, CloseLarge } from '@carbon/icons-react'
 import * as motion from 'motion/react-client'
 import { toast } from 'sonner'
-import { type ModelKey } from '@/lib/models'
+import { type ModelKey, getModelsForApiMode } from '@/lib/models'
 import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
 import type { Editor, TLShapeId } from '@tldraw/tldraw'
 
@@ -56,6 +56,7 @@ export default function PlaygroundPage() {
   const [editor, setEditor] = useState<Editor | null>(null)
   const editorRef = useRef<Editor | null>(null)
   const [selectionIdMap, setSelectionIdMap] = useState<Map<TLShapeId, number>>(EMPTY_MAP)
+  const [apiMode, setApiMode] = useState<'litellm' | 'gemini'>('litellm')
   const [model, setModel] = useState<ModelKey>('vertex_ai/gemini-2.5-flash-image')
   const [prompt, setPrompt] = useState('')
   const [aspectRatio, setAspectRatio] = useState('16:9')
@@ -69,18 +70,33 @@ export default function PlaygroundPage() {
   const [historyReloadTrigger, setHistoryReloadTrigger] = useState(0)
   const [helpersLoaded, setHelpersLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const previousAspectRatioRef = useRef<string | null>(null)
 
-  // Check if settings were just saved and show toast
+  // Load API mode from localStorage and update when settings change
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const savedMode = (localStorage.getItem('api_mode') || 'litellm') as 'litellm' | 'gemini'
+      setApiMode(savedMode)
+
+      // Switch to first available model for this mode
+      const modelsForMode = getModelsForApiMode(savedMode)
+      const modelKeys = Object.keys(modelsForMode) as ModelKey[]
+      if (modelKeys.length > 0 && !modelsForMode[model]) {
+        setModel(modelKeys[0])
+        // Also reset aspect ratio and image size to defaults for new model
+        const newModelConfig = modelsForMode[modelKeys[0]]
+        if (newModelConfig) {
+          setAspectRatio(newModelConfig.aspectRatios[0])
+          setImageSize(newModelConfig.imageSizes[0])
+        }
+      }
+
       const justSaved = localStorage.getItem('settings_just_saved')
       if (justSaved === 'true') {
         localStorage.removeItem('settings_just_saved')
         toast.success('API credentials saved successfully')
       }
     }
-  }, [])
+  }, [model])
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -116,23 +132,6 @@ export default function PlaygroundPage() {
     localStorage.setItem('playground_numImages', numImages.toString())
   }, [numImages])
 
-  // Auto-set aspect ratio to 1:1 in edit mode
-  useEffect(() => {
-    if (selectedImages.length > 0) {
-      // Entering edit mode - save current aspect ratio and set to 1:1
-      if (aspectRatio !== '1:1') {
-        previousAspectRatioRef.current = aspectRatio
-        setAspectRatio('1:1')
-      }
-    } else {
-      // Exiting edit mode - restore previous aspect ratio
-      if (previousAspectRatioRef.current) {
-        setAspectRatio(previousAspectRatioRef.current)
-        previousAspectRatioRef.current = null
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedImages.length])
 
   // Load canvas helpers dynamically on client side only
   useEffect(() => {
@@ -660,6 +659,7 @@ export default function PlaygroundPage() {
         onOpenUpload={() => fileInputRef.current?.click()}
         onOpenSettings={() => setShowSettings(true)}
         selectedImagesCount={selectedImages.length}
+        apiMode={apiMode}
       />
 
       {/* Hidden file input for uploads */}

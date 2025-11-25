@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth } from '@carbon/icons-react'
+import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth, MachineLearningModel } from '@carbon/icons-react'
 import { PromptInput } from '@/components/cascade/PromptInput'
 import { cn } from '@/lib/utils'
-import { type ModelKey, AVAILABLE_MODELS } from '@/lib/models'
+import { type ModelKey, AVAILABLE_MODELS, getModelsForApiMode } from '@/lib/models'
 import * as motion from 'motion/react-client'
 
 interface FloatingToolbarProps {
@@ -23,6 +23,7 @@ interface FloatingToolbarProps {
   onOpenUpload: () => void
   onOpenSettings: () => void
   selectedImagesCount: number
+  apiMode: 'litellm' | 'gemini'
 }
 
 const HISTORY_STORAGE_KEY = 'prompt-history'
@@ -65,11 +66,16 @@ export function FloatingToolbar({
   onOpenUpload,
   onOpenSettings,
   selectedImagesCount,
+  apiMode,
 }: FloatingToolbarProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [promptHistory, setPromptHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState<number>(-1)
   const [temporaryPrompt, setTemporaryPrompt] = useState<string>('')
+
+  // Get models available for current API mode
+  const availableModels = getModelsForApiMode(apiMode)
+  const availableModelKeys = Object.keys(availableModels) as ModelKey[]
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -85,7 +91,7 @@ export function FloatingToolbar({
 
   const modelConfig = AVAILABLE_MODELS[model]
   const availableAspectRatios = modelConfig?.aspectRatios || ['1:1']
-  const availableImageSizes = modelConfig?.imageSizes || ['1K', '2K']
+  const availableImageSizes = modelConfig?.imageSizes || ['1K']
 
   const handleAspectRatioClick = () => {
     const currentIndex = availableAspectRatios.indexOf(aspectRatio as any)
@@ -164,7 +170,7 @@ export function FloatingToolbar({
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
-      <div className="bg-card dark:bg-card rounded-2xl shadow-2xl backdrop-blur-xl border border-border">
+      <div className="bg-neutral-100/70 dark:bg-neutral-800/70 rounded-2xl shadow-2xl backdrop-blur-[18px] backdrop-saturate-[1.8]">
         {/* Collapsed view - always visible */}
         <div>
           {/* Prompt input - full width */}
@@ -217,18 +223,42 @@ export function FloatingToolbar({
                 </span>
               </button>
               <button
-                onClick={handleAspectRatioClick}
-                disabled={selectedImagesCount > 0}
+                onClick={() => {
+                  if (availableModelKeys.length <= 1) return
+                  const currentIndex = availableModelKeys.indexOf(model)
+                  const nextIndex = (currentIndex + 1) % availableModelKeys.length
+                  onModelChange(availableModelKeys[nextIndex])
+                }}
+                disabled={availableModelKeys.length <= 1}
                 className={`flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors ${
-                  selectedImagesCount > 0
+                  availableModelKeys.length <= 1
                     ? 'opacity-40 cursor-not-allowed'
                     : 'hover:bg-white/10'
                 }`}
-                title={
-                  selectedImagesCount > 0
-                    ? 'Edit mode uses 1:1 aspect ratio'
-                    : `Aspect ratio: ${aspectRatio}`
-                }
+                title={availableModelKeys.length <= 1 ? 'Only one model available' : `Model: ${modelConfig?.name || model}`}
+              >
+                <MachineLearningModel size={20} />
+                <span className="text-sm font-medium inline-block overflow-hidden">
+                  <motion.span
+                    key={model}
+                    initial={isMounted ? { y: 20, opacity: 0 } : false}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="inline-block"
+                  >
+                    {modelConfig?.shortName || modelConfig?.name || model}
+                  </motion.span>
+                </span>
+              </button>
+              <button
+                onClick={handleAspectRatioClick}
+                disabled={availableAspectRatios.length <= 1}
+                className={`flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors ${
+                  availableAspectRatios.length <= 1
+                    ? 'opacity-40 cursor-not-allowed'
+                    : 'hover:bg-white/10'
+                }`}
+                title={availableAspectRatios.length <= 1 ? 'Only 1:1 supported' : `Aspect ratio: ${aspectRatio}`}
               >
                 {isHorizontal ? (
                   <DocumentHorizontal size={20} />
@@ -249,8 +279,13 @@ export function FloatingToolbar({
               </button>
               <button
                 onClick={handleImageSizeClick}
-                className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors"
-                title={`Resolution: ${imageSize}`}
+                disabled={availableImageSizes.length <= 1}
+                className={`flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors ${
+                  availableImageSizes.length <= 1
+                    ? 'opacity-40 cursor-not-allowed'
+                    : 'hover:bg-white/10'
+                }`}
+                title={availableImageSizes.length <= 1 ? 'Only 1K supported' : `Resolution: ${imageSize}`}
               >
                 <FitToWidth size={20} />
                 <span className="text-sm font-medium inline-block overflow-hidden">

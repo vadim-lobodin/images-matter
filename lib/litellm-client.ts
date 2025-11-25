@@ -154,31 +154,29 @@ function buildRequestBody(
     n: numImages,
   };
 
-  // Build generation config for Vertex AI image parameters
-  // Using the exact format from Vertex AI documentation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generationConfig: any = {};
-
-  if (aspectRatio) {
-    generationConfig.aspect_ratio = aspectRatio;
-  }
-
-  if (imageSize) {
-    // Convert "1K" to 1024, "2K" to 2048 for imageSize parameter
-    const sizeMap: { [key: string]: number } = {
-      '1K': 1024,
-      '2K': 2048
-    };
-    if (sizeMap[imageSize]) {
-      generationConfig.image_size = sizeMap[imageSize];
+  // Build generation config for image parameters
+  // Try multiple formats for compatibility with different LiteLLM versions
+  if (aspectRatio || imageSize) {
+    // Format 1: Nested imageConfig (like direct Gemini API)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const imageConfig: any = {};
+    if (aspectRatio) {
+      imageConfig.aspectRatio = aspectRatio;
     }
-  }
+    if (imageSize) {
+      imageConfig.image_size = imageSize;
+    }
 
-  // Add generation config if we have parameters
-  // Try both naming conventions for better compatibility
-  if (Object.keys(generationConfig).length > 0) {
-    requestBody.generationConfig = generationConfig;
-    requestBody.generation_config = generationConfig;
+    requestBody.generationConfig = { imageConfig };
+    requestBody.generation_config = { image_config: imageConfig };
+
+    // Format 2: Top-level parameters (OpenAI style)
+    if (aspectRatio) {
+      requestBody.aspect_ratio = aspectRatio;
+    }
+    if (imageSize) {
+      requestBody.size = imageSize;
+    }
   }
 
   return requestBody;

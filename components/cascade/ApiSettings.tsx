@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CloseLarge, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
@@ -11,44 +11,35 @@ interface ApiSettingsProps {
 }
 
 export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
-  const [apiMode, setApiMode] = useState<"litellm" | "gemini">(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini";
-    }
-    return "gemini";
-  });
-  const [apiKey, setApiKey] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("litellm_api_key") || "";
-    }
-    return "";
-  });
-  const [geminiApiKey, setGeminiApiKey] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("gemini_api_key") || "";
-    }
-    return "";
-  });
-  const [proxyUrl, setProxyUrl] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("litellm_proxy_url") || "https://litellm.labs.jb.gg";
-    }
-    return "https://litellm.labs.jb.gg";
-  });
+  const [apiMode, setApiMode] = useState<"litellm" | "gemini">("gemini");
+  const [apiKey, setApiKey] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [proxyUrl, setProxyUrl] = useState("https://litellm.labs.jb.gg");
   const [showKey, setShowKey] = useState(false);
-  const [isSaved, setIsSaved] = useState(() => {
-    if (typeof window !== "undefined") {
-      const mode = (localStorage.getItem("api_mode") || "gemini") as "litellm" | "gemini";
-      if (mode === "gemini") {
-        return !!localStorage.getItem("gemini_api_key");
-      }
-      const savedKey = localStorage.getItem("litellm_api_key");
-      const savedUrl = localStorage.getItem("litellm_proxy_url");
-      return !!(savedKey && savedUrl);
-    }
-    return false;
-  });
+  const [isSaved, setIsSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Refresh state from localStorage whenever modal opens
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined") {
+      const mode = (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini";
+      setApiMode(mode);
+      setApiKey(localStorage.getItem("litellm_api_key") || "");
+      setGeminiApiKey(localStorage.getItem("gemini_api_key") || "");
+      setProxyUrl(localStorage.getItem("litellm_proxy_url") || "https://litellm.labs.jb.gg");
+      setShowKey(false);
+      setError(null);
+
+      // Check if already saved
+      if (mode === "gemini") {
+        setIsSaved(!!localStorage.getItem("gemini_api_key"));
+      } else {
+        const savedKey = localStorage.getItem("litellm_api_key");
+        const savedUrl = localStorage.getItem("litellm_proxy_url");
+        setIsSaved(!!(savedKey && savedUrl));
+      }
+    }
+  }, [isOpen]);
 
   const handleSave = () => {
     setError(null);
@@ -202,11 +193,18 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
             <div className="relative">
               <input
                 id="api-key"
-                type={showKey ? "text" : "password"}
+                type="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-1p-ignore
+                data-lpignore="true"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="Enter your LiteLLM API key"
-                className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+                className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20 font-mono"
+                style={!showKey ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
               />
               <button
                 type="button"
@@ -273,11 +271,18 @@ export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
               <div className="relative">
                 <input
                   id="gemini-api-key"
-                  type={showKey ? "text" : "password"}
+                  type="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-1p-ignore
+                  data-lpignore="true"
                   value={geminiApiKey}
                   onChange={(e) => setGeminiApiKey(e.target.value)}
                   placeholder="Enter your Google API key"
-                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm text-foreground outline-none transition-colors hover:border-ring focus:border-ring focus:ring-2 focus:ring-ring/20 font-mono"
+                  style={!showKey ? { WebkitTextSecurity: 'disc' } as React.CSSProperties : undefined}
                 />
                 <button
                   type="button"
