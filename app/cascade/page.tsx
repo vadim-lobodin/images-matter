@@ -344,41 +344,52 @@ export default function PlaygroundPage() {
           const response = results[0].value
           const imageUrls = extractImagesFromResponse(response)
 
-          // Update all placeholders with the returned images
-          for (let i = 0; i < imageUrls.length && i < placeholderIds.length; i++) {
-            const imageUrl = imageUrls[i]
-            try {
-              // Load the image to get its actual dimensions
-              const img = new Image()
-              await new Promise<void>((resolve, reject) => {
-                img.onload = () => resolve()
-                img.onerror = () => reject(new Error('Failed to load image'))
-                img.src = imageUrl
-              })
+          if (imageUrls.length === 0) {
+            // API returned success but no images - check for text content with error
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const textContent = typeof response === 'object' ? (response as any)?.choices?.[0]?.message?.content || '' : ''
+            const errorMsg = textContent || 'API returned no images. The model may have refused to generate the requested content.'
+            console.error('Gemini API returned no images:', errorMsg)
+            errorMessages.push(errorMsg)
+            placeholderIds.forEach((id: string) => editor.deleteShape(id as any))
+            successfulImages = []
+          } else {
+            // Update all placeholders with the returned images
+            for (let i = 0; i < imageUrls.length && i < placeholderIds.length; i++) {
+              const imageUrl = imageUrls[i]
+              try {
+                // Load the image to get its actual dimensions
+                const img = new Image()
+                await new Promise<void>((resolve, reject) => {
+                  img.onload = () => resolve()
+                  img.onerror = () => reject(new Error('Failed to load image'))
+                  img.src = imageUrl
+                })
 
-              // Update shape with image data and correct dimensions
-              editor.updateShape<GeneratedImageShape>({
-                id: placeholderIds[i],
-                type: 'generated-image',
-                props: {
-                  imageData: imageUrl,
-                  isLoading: false,
-                  w: img.naturalWidth,
-                  h: img.naturalHeight,
-                },
-              })
-            } catch (error) {
-              console.error(`Failed to process image ${i + 1}:`, error)
+                // Update shape with image data and correct dimensions
+                editor.updateShape<GeneratedImageShape>({
+                  id: placeholderIds[i],
+                  type: 'generated-image',
+                  props: {
+                    imageData: imageUrl,
+                    isLoading: false,
+                    w: img.naturalWidth,
+                    h: img.naturalHeight,
+                  },
+                })
+              } catch (error) {
+                console.error(`Failed to process image ${i + 1}:`, error)
+                editor.deleteShape(placeholderIds[i] as any)
+              }
+            }
+
+            // Delete any remaining placeholders if we got fewer images than expected
+            for (let i = imageUrls.length; i < placeholderIds.length; i++) {
               editor.deleteShape(placeholderIds[i] as any)
             }
-          }
 
-          // Delete any remaining placeholders if we got fewer images than expected
-          for (let i = imageUrls.length; i < placeholderIds.length; i++) {
-            editor.deleteShape(placeholderIds[i] as any)
+            successfulImages = imageUrls
           }
-
-          successfulImages = imageUrls
         } else {
           // All failed - capture the error message
           const error = results[0].reason
