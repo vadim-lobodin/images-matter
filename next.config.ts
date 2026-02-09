@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/libraries/:path*',
+        destination: 'https://berlin-libraries.vercel.app/:path*',
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
