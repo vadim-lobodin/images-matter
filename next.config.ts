@@ -7,8 +7,12 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/libraries/:path*',
-        destination: 'https://berlin-libraries.vercel.app/libraries/:path*',
+        source: '/libraries',
+        destination: 'https://berlin-libraries.vercel.app/libraries',
+      },
+      {
+        source: '/libraries/:path+',
+        destination: 'https://berlin-libraries.vercel.app/libraries/:path+',
       },
     ];
   },
