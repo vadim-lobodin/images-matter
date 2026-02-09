@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
         source: '/libraries/:path+',
         destination: 'https://berlin-libraries.vercel.app/libraries/:path+',
       },
+      {
+        source: '/intercom',
+        destination: 'https://intercom-lyart.vercel.app/intercom',
+      },
+      {
+        source: '/intercom/:path+',
+        destination: 'https://intercom-lyart.vercel.app/intercom/:path+',
+      },
     ];
   },
   images: {
