@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/libraries/:path*',
-        destination: 'https://berlin-libraries.vercel.app/:path*',
+        destination: 'https://berlin-libraries.vercel.app/libraries/:path*',
       },
     ];
   },
