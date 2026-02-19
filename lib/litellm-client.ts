@@ -154,29 +154,18 @@ function buildRequestBody(
     n: numImages,
   };
 
-  // Build generation config for image parameters
-  // Try multiple formats for compatibility with different LiteLLM versions
+  // Build image config for image parameters
+  // Use top-level image_config with snake_case keys (supported since LiteLLM v1.80.7)
   if (aspectRatio || imageSize) {
-    // Format 1: Nested imageConfig (like direct Gemini API)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const imageConfig: any = {};
     if (aspectRatio) {
-      imageConfig.aspectRatio = aspectRatio;
+      imageConfig.aspect_ratio = aspectRatio;
     }
     if (imageSize) {
       imageConfig.image_size = imageSize;
     }
-
-    requestBody.generationConfig = { imageConfig };
-    requestBody.generation_config = { image_config: imageConfig };
-
-    // Format 2: Top-level parameters (OpenAI style)
-    if (aspectRatio) {
-      requestBody.aspect_ratio = aspectRatio;
-    }
-    if (imageSize) {
-      requestBody.size = imageSize;
-    }
+    requestBody.image_config = imageConfig;
   }
 
   return requestBody;

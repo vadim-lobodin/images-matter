@@ -21,6 +21,15 @@ export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
     maxImages: 4,
     apiMode: 'litellm',
   },
+  "vertex_ai/gemini-3-pro-image-preview": {
+    name: "Gemini 3 Pro",
+    provider: "Google",
+    shortName: "Gemini 3 Pro",
+    aspectRatios: ["21:9", "16:9", "4:3", "3:2", "5:4", "1:1", "4:5", "2:3", "3:4", "9:16"],
+    imageSizes: ["1K", "2K", "4K"],
+    maxImages: 4,
+    apiMode: 'litellm',
+  },
   // Direct Google API models
   "gemini-2.5-flash-image": {
     name: "Gemini 2.5 Flash",
