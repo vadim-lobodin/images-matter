@@ -22,6 +22,14 @@ const nextConfig: NextConfig = {
         source: '/intercom/:path+',
         destination: 'https://intercom-lyart.vercel.app/intercom/:path+',
       },
+      {
+        source: '/portfolio',
+        destination: 'https://portfolio-psi-tawny-u3hbqm8i06.vercel.app/portfolio',
+      },
+      {
+        source: '/portfolio/:path+',
+        destination: 'https://portfolio-psi-tawny-u3hbqm8i06.vercel.app/portfolio/:path+',
+      },
     ];
   },
   images: {
