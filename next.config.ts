@@ -30,6 +30,14 @@ const nextConfig: NextConfig = {
         source: '/portfolio/:path+',
         destination: 'https://portfolio-psi-tawny-u3hbqm8i06.vercel.app/portfolio/:path+',
       },
+      {
+        source: '/gitlab',
+        destination: 'https://nim-gitlab.vercel.app/gitlab',
+      },
+      {
+        source: '/gitlab/:path+',
+        destination: 'https://nim-gitlab.vercel.app/gitlab/:path+',
+      },
     ];
   },
   images: {
