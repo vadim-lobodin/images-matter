@@ -47,7 +47,6 @@ export const Default: Story = {
     onImageSizeChange: (size: string) => console.log('Image size changed:', size),
     numImages: 1,
     onNumImagesChange: (num: number) => console.log('Num images changed:', num),
-    activeGenerationsCount: 0,
     onGenerate: () => console.log('Generate clicked'),
     onOpenUpload: () => console.log('Open upload clicked'),
     onOpenSettings: () => console.log('Open settings clicked'),

@@ -32,7 +32,6 @@ interface FloatingToolbarProps {
   onImageSizeChange: (size: string) => void
   numImages: number
   onNumImagesChange: (num: number) => void
-  activeGenerationsCount: number
   onGenerate: () => void
   onOpenUpload: () => void
   onOpenSettings: () => void
@@ -98,7 +97,6 @@ export function FloatingToolbar({
   onImageSizeChange,
   numImages,
   onNumImagesChange,
-  activeGenerationsCount,
   onGenerate,
   onOpenUpload,
   onOpenSettings,
@@ -430,7 +428,7 @@ export function FloatingToolbar({
             {/* Right side: Generate/Edit button */}
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || activeGenerationsCount > 0}
+              disabled={!prompt.trim()}
               title={buttonLabel}
               className={cn(
                 'p-3 rounded-full font-medium transition-all flex items-center justify-center -translate-y-2',

@@ -1,6 +1,11 @@
 // Gemini image generation through LiteLLM proxy using chat/completions
 import { getApiErrorMessage, type ImageApiResponse } from './image-api'
-import { composeGenerationPrompt } from './recipe-prompt'
+import {
+  composeEditTargetImageLabel,
+  composeGenerationPrompt,
+  composeRecipeReferenceImageLabel,
+  RECIPE_REFERENCE_END_LABEL,
+} from './recipe-prompt'
 import type { RecipeReference } from './recipes'
 
 export interface GeminiImageRequest {
@@ -182,7 +187,9 @@ export async function generateGeminiImage(
   const content: string | LiteLLMContentPart[] = recipe?.imageData
     ? [
         { type: 'text', text: enhancedPrompt },
+        { type: 'text', text: composeRecipeReferenceImageLabel(1) },
         { type: 'image_url', image_url: { url: recipe.imageData } },
+        { type: 'text', text: RECIPE_REFERENCE_END_LABEL },
       ]
     : enhancedPrompt
   const requestBody = buildRequestBody(model, content, numImages, aspectRatio, imageSize);
@@ -209,14 +216,27 @@ export async function editGeminiImage(
       type: "text",
       text: enhancedPrompt,
     },
-    ...images.map((imageUrl): LiteLLMContentPart => ({
-      type: "image_url",
-      image_url: {
-        url: imageUrl,
+    ...images.flatMap((imageUrl, index): LiteLLMContentPart[] => [
+      {
+        type: 'text',
+        text: composeEditTargetImageLabel(imageIds?.[index] ?? index + 1),
       },
-    })),
+      {
+        type: 'image_url',
+        image_url: {
+          url: imageUrl,
+        },
+      },
+    ]),
     ...(recipe?.imageData
-      ? [{ type: 'image_url' as const, image_url: { url: recipe.imageData } }]
+      ? [
+          {
+            type: 'text' as const,
+            text: composeRecipeReferenceImageLabel(images.length + 1),
+          },
+          { type: 'image_url' as const, image_url: { url: recipe.imageData } },
+          { type: 'text' as const, text: RECIPE_REFERENCE_END_LABEL },
+        ]
       : []),
   ];
 

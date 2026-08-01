@@ -1,7 +1,12 @@
 // Direct Google Gemini API client for image generation
 // Based on https://ai.google.dev/gemini-api/docs/image-generation
 import { getApiErrorMessage, type ImageApiResponse } from './image-api'
-import { composeGenerationPrompt } from './recipe-prompt'
+import {
+  composeEditTargetImageLabel,
+  composeGenerationPrompt,
+  composeRecipeReferenceImageLabel,
+  RECIPE_REFERENCE_END_LABEL,
+} from './recipe-prompt'
 import type { RecipeReference } from './recipes'
 
 export interface GeminiImageRequest {
@@ -77,8 +82,9 @@ function buildGeminiRequest(
 
   // Add images if provided (for editing)
   if (images && images.length > 0) {
-    for (const imageUrl of images) {
+    for (const [index, imageUrl] of images.entries()) {
       const { mimeType, data } = stripDataUrlPrefix(imageUrl);
+      parts.push({ text: composeEditTargetImageLabel(imageIds?.[index] ?? index + 1) })
       parts.push({
         inlineData: {
           mimeType,
@@ -90,7 +96,9 @@ function buildGeminiRequest(
 
   if (recipe?.imageData) {
     const { mimeType, data } = stripDataUrlPrefix(recipe.imageData)
+    parts.push({ text: composeRecipeReferenceImageLabel((images?.length ?? 0) + 1) })
     parts.push({ inlineData: { mimeType, data } })
+    parts.push({ text: RECIPE_REFERENCE_END_LABEL })
   }
 
   // Build generation config

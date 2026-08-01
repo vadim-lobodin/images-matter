@@ -132,7 +132,6 @@ export default function PlaygroundPage() {
   const [numImages, setNumImages] = useState(initialSettings.numImages)
   const [activeRecipe, setActiveRecipe] = useState<AppliedRecipe | null>(null)
   const [selectedImages, setSelectedImages] = useState<CanvasImageShape[]>([])
-  const [activeGenerationsCount, setActiveGenerationsCount] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [historyCount, setHistoryCount] = useState(0)
@@ -165,12 +164,14 @@ export default function PlaygroundPage() {
     localStorage.setItem('playground_numImages', numImages.toString())
   }, [numImages])
   const handleGenerate = async () => {
+    const promptToUse = prompt.trim()
+    if (!promptToUse) return
+
     if (!editor) {
       toast.error('Canvas is still loading, please wait...')
       return
     }
 
-    setActiveGenerationsCount(prev => prev + 1)
     const recipeToUse = activeRecipe
 
     try {
@@ -241,7 +242,7 @@ export default function PlaygroundPage() {
         numImages,
         position,
         {
-          prompt,
+          prompt: promptToUse,
           model,
           aspectRatio,
           resolution: imageSize,
@@ -253,6 +254,11 @@ export default function PlaygroundPage() {
       // Smart focus: only pan if shapes are outside viewport
       canvasHelpers.focusAndCenterShapes(editor, placeholderIds)
 
+      // Consume only the values queued by this request. If the user already started
+      // preparing another request during preflight, leave those newer values intact.
+      setPrompt((current) => current.trim() === promptToUse ? '' : current)
+      setActiveRecipe((current) => current === recipeToUse ? null : current)
+
       const errorMessages: string[] = []
       let successfulImages: string[] = []
 
@@ -260,7 +266,7 @@ export default function PlaygroundPage() {
         const { generateGeminiImage, editGeminiImage } = await import('@/lib/gemini-direct-client')
         const baseParams = {
           model,
-          prompt,
+          prompt: promptToUse,
           aspectRatio,
           imageSize,
           numImages,
@@ -312,7 +318,7 @@ export default function PlaygroundPage() {
         const requests = Array.from({ length: numImages }, (_, index) => {
           const baseParams = {
             model,
-            prompt,
+            prompt: promptToUse,
             aspectRatio,
             imageSize,
             numImages: 1,
@@ -368,14 +374,11 @@ export default function PlaygroundPage() {
       await addToHistory({
         mode: isEdit ? 'edit' : 'generate',
         model,
-        prompt,
+        prompt: promptToUse,
         recipe: recipeToUse ? toRecipeSnapshot(recipeToUse) : undefined,
         images: successfulImages.map((url) => ({ url })),
       })
 
-      // Clear prompt on success
-      setPrompt('')
-      setActiveRecipe(null)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image'
       
@@ -403,8 +406,6 @@ export default function PlaygroundPage() {
       } else {
         toast.error(errorMessage)
       }
-    } finally {
-      setActiveGenerationsCount(prev => Math.max(0, prev - 1))
     }
   }
 
@@ -639,7 +640,6 @@ export default function PlaygroundPage() {
         onImageSizeChange={setImageSize}
         numImages={numImages}
         onNumImagesChange={setNumImages}
-        activeGenerationsCount={activeGenerationsCount}
         onGenerate={handleGenerate}
         onOpenUpload={() => fileInputRef.current?.click()}
         onOpenSettings={() => setShowSettings(true)}
