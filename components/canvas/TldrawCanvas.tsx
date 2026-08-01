@@ -225,7 +225,7 @@ export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanva
         components={components}
         onMount={handleMount}
         persistenceKey="image-playground-canvas"
-        licenseKey="tldraw-2026-05-19/WyI3bWR2eE9NVyIsWyIqIl0sMTYsIjIwMjYtMDUtMTkiXQ.Lifu3dG8L55lBSxf4XPexxt9hBV3dqxhJBCaGC6L9Mm+kVsyK3OeN2oepivKD0OI4McX/aaX2d0+QJGAkkaOtQ"
+        licenseKey="tldraw-2027-02-10/WyJTMng3a01kbCIsWyIqLnZhZGltbG9ib2Rpbi5jb20iXSw5LCIyMDI3LTAyLTEwIl0.NXDRIx9uQvGnk8NhIHUpgtmnjdkEy5M+S3OsPWxKLqs6ayvX4WvRyKtyYrqlULmpzgcbVgshhYhLFGKCA914Og"
       />
     </div>
   )
