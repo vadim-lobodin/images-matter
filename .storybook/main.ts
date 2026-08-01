@@ -1,5 +1,8 @@
 import type { StorybookConfig } from "@storybook/nextjs-vite";
 import type { Plugin } from 'vite';
+import { fileURLToPath } from 'node:url';
+
+const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 
 // Plugin to strip 'use client' directives for Storybook compatibility
 const stripUseClientPlugin = (): Plugin => ({
@@ -49,6 +52,12 @@ const config: StorybookConfig = {
         stripUseClientPlugin(),
         ...(config.plugins || []),
       ],
+      resolve: {
+        ...config.resolve,
+        alias: {
+          '@': projectRoot,
+        },
+      },
       server: {
         ...config.server,
         fs: {

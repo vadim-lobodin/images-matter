@@ -36,7 +36,7 @@ A Next.js application for generating and editing images using Google Gemini AI m
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 with App Router and Turbopack
+- **Framework**: Next.js 16 with App Router and Turbopack
 - **UI**: React 19.2 with TypeScript
 - **Styling**: Tailwind CSS v4
 - **AI Integration**: LiteLLM proxy for Gemini API access
@@ -46,7 +46,7 @@ A Next.js application for generating and editing images using Google Gemini AI m
 
 ### Prerequisites
 
-You need access to a **LiteLLM proxy** that can route requests to Google Gemini AI models. You have two options:
+You need Node.js 22.12 or newer and access to a **LiteLLM proxy** that can route requests to Google Gemini AI models. You have two options:
 
 #### Option 1: Use an Existing LiteLLM Proxy
 

@@ -3,30 +3,36 @@ import {
   DefaultColorStyle,
   RecordProps,
   T,
-  TLBaseShape,
+  TLResizeInfo,
+  TLShape,
   resizeBox,
   HTMLContainer,
 } from '@tldraw/tldraw'
 import * as motion from 'motion/react-client'
 
-// Define the shape type
-export type GeneratedImageShape = TLBaseShape<
-  'generated-image',
-  {
-    w: number
-    h: number
-    imageData: string // base64 data URL (empty when loading)
-    sourceImageData: string // stores original image for blurred backdrop during regeneration
-    prompt: string
-    model: string
-    timestamp: number
-    aspectRatio: string
-    resolution: string
-    isLoading: boolean // true when generating
-    hasAnimated: boolean // true after initial load animation
-    promptHistory: string[] // array of all prompts used to create this image (for iterative editing)
+export interface GeneratedImageProps {
+  w: number
+  h: number
+  imageData: string // base64 data URL (empty when loading)
+  sourceImageData: string // stores original image for blurred backdrop during regeneration
+  prompt: string
+  model: string
+  timestamp: number
+  aspectRatio: string
+  resolution: string
+  isLoading: boolean // true when generating
+  hasAnimated: boolean // true after initial load animation
+  promptHistory: string[] // array of all prompts used to create this image (for iterative editing)
+}
+
+declare module '@tldraw/tlschema' {
+  interface TLGlobalShapePropsMap {
+    'generated-image': GeneratedImageProps
   }
->
+}
+
+// Define the shape type
+export type GeneratedImageShape = TLShape<'generated-image'>
 
 // Validation
 export const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
@@ -222,8 +228,14 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
     )
   }
 
+  override getIndicatorPath(shape: GeneratedImageShape) {
+    const path = new Path2D()
+    path.roundRect(0, 0, shape.props.w, shape.props.h, 20)
+    return path
+  }
+
   // Handle resizing while maintaining aspect ratio
-  override onResize = (shape: GeneratedImageShape, info: any) => {
+  override onResize = (shape: GeneratedImageShape, info: TLResizeInfo<GeneratedImageShape>) => {
     return resizeBox(shape, info)
   }
 }
