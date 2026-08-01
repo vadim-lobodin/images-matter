@@ -566,9 +566,9 @@ export default function PlaygroundPage() {
       <NextImage
         src="/logo.svg"
         alt="Logo"
-        width={64}
-        height={16}
-        className="fixed top-8 left-8 z-50 h-4 dark:invert-0 invert"
+        width={105}
+        height={18}
+        className="fixed top-8 left-8 z-50 h-4 w-auto dark:invert-0 invert"
       />
 
       {/* Clear all history button - only visible when history is open and has items */}
