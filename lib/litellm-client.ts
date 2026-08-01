@@ -1,5 +1,7 @@
 // Gemini image generation through LiteLLM proxy using chat/completions
 import { getApiErrorMessage, type ImageApiResponse } from './image-api'
+import { composeGenerationPrompt } from './recipe-prompt'
+import type { RecipeReference } from './recipes'
 
 export interface GeminiImageRequest {
   model: string;
@@ -9,6 +11,7 @@ export interface GeminiImageRequest {
   numImages?: number;
   apiKey: string;
   baseURL: string;
+  recipe?: RecipeReference;
 }
 
 export interface GeminiImageEditRequest {
@@ -22,6 +25,7 @@ export interface GeminiImageEditRequest {
   numImages?: number;
   apiKey: string;
   baseURL: string;
+  recipe?: RecipeReference;
 }
 
 export type GeminiImageResponse = ImageApiResponse
@@ -104,7 +108,9 @@ async function makeLiteLLMRequest(
     if (response.status === 401 || response.status === 403) {
       errorMessage = "Authentication Failed\n\nYour API key is invalid or expired.\n\nPlease check your API key in Settings.";
     } else if (response.status === 404) {
-      errorMessage = "Endpoint Not Found\n\nThe API endpoint or model may not be available.\n\nPlease check your proxy URL in Settings.";
+      errorMessage = apiErrorMessage
+        ? `Endpoint or Model Not Found\n\n${apiErrorMessage}`
+        : "Endpoint Not Found\n\nThe API endpoint or model may not be available.\n\nPlease check your proxy URL in Settings.";
     } else if (response.status === 429) {
       errorMessage = "Rate Limit Exceeded\n\nToo many requests. Please try again in a few moments.";
     } else if (response.status === 400) {
@@ -146,6 +152,11 @@ function buildRequestBody(
     n: numImages,
   };
 
+  // Gemini 3 image models are available on Vertex AI through the global endpoint.
+  if (model === "vertex_ai/gemini-3-pro-image" || model === "vertex_ai/gemini-3.1-flash-image") {
+    requestBody.vertex_location = "global";
+  }
+
   // Build image config for image parameters
   // Use top-level image_config with snake_case keys (supported since LiteLLM v1.80.7)
   if (aspectRatio || imageSize) {
@@ -165,9 +176,16 @@ function buildRequestBody(
 export async function generateGeminiImage(
   request: GeminiImageRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, baseURL, model, prompt, aspectRatio, imageSize, numImages = 1 } = request;
+  const { apiKey, baseURL, model, prompt, aspectRatio, imageSize, numImages = 1, recipe } = request;
 
-  const requestBody = buildRequestBody(model, prompt, numImages, aspectRatio, imageSize);
+  const enhancedPrompt = composeGenerationPrompt({ prompt, recipe })
+  const content: string | LiteLLMContentPart[] = recipe?.imageData
+    ? [
+        { type: 'text', text: enhancedPrompt },
+        { type: 'image_url', image_url: { url: recipe.imageData } },
+      ]
+    : enhancedPrompt
+  const requestBody = buildRequestBody(model, content, numImages, aspectRatio, imageSize);
 
   return makeLiteLLMRequest(apiKey, baseURL, requestBody);
 }
@@ -175,29 +193,15 @@ export async function generateGeminiImage(
 export async function editGeminiImage(
   request: GeminiImageEditRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, baseURL, model, prompt, images, imageIds, promptHistory, aspectRatio, imageSize, numImages = 1 } = request;
+  const { apiKey, baseURL, model, prompt, images, imageIds, promptHistory, aspectRatio, imageSize, numImages = 1, recipe } = request;
 
-  // Build enhanced prompt with history context and image references
-  let enhancedPrompt = '';
-
-  // Add prompt history if available
-  if (promptHistory && promptHistory.length > 0) {
-    enhancedPrompt += '[Context - Previous editing iterations:]\n';
-    promptHistory.forEach((prevPrompt, index) => {
-      enhancedPrompt += `${index + 1}. "${prevPrompt}"\n`;
-    });
-    enhancedPrompt += '\n';
-  }
-
-  // Add current request
-  enhancedPrompt += '[Current request:]\n';
-  enhancedPrompt += prompt;
-
-  // Add image ID references if provided
-  if (imageIds && imageIds.length === images.length && imageIds.length > 0) {
-    const imageRefs = imageIds.map(id => `Image ${id}`).join(', ');
-    enhancedPrompt += `\n\n[Selected images: ${imageRefs}]`;
-  }
+  const enhancedPrompt = composeGenerationPrompt({
+    prompt,
+    promptHistory,
+    sourceImageIds: imageIds,
+    sourceImageCount: images.length,
+    recipe,
+  })
 
   // Build multimodal content array with text and images
   const content: LiteLLMContentPart[] = [
@@ -211,6 +215,9 @@ export async function editGeminiImage(
         url: imageUrl,
       },
     })),
+    ...(recipe?.imageData
+      ? [{ type: 'image_url' as const, image_url: { url: recipe.imageData } }]
+      : []),
   ];
 
   const requestBody = buildRequestBody(model, content, numImages, aspectRatio, imageSize);

@@ -1,12 +1,25 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { AddLarge, Settings, ArrowUp, Image as ImageIcon, DocumentHorizontal, DocumentVertical, FitToWidth, AiLabel, AiGenerate } from '@carbon/icons-react'
+import dynamic from 'next/dynamic'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { AddLarge, Settings, ArrowUp, Image as ImageIcon, DocumentHorizontal, DocumentVertical, FitToWidth, AiLabel, AiGenerate, Close, ImageReference } from '@carbon/icons-react'
 import { PromptInput } from '@/components/cascade/PromptInput'
 import { cn } from '@/lib/utils'
 import { type ModelKey, AVAILABLE_MODELS, getModelsForApiMode } from '@/lib/models'
 import * as motion from 'motion/react-client'
 import { useHydrated } from '@/lib/use-hydrated'
+import { BlobImage } from '@/components/ui/BlobImage'
+import {
+  RECIPE_INFLUENCE_LABELS,
+  type AppliedRecipe,
+  type Recipe,
+  type RecipeInfluence,
+} from '@/lib/recipes'
+
+const RecipeMenu = dynamic(
+  () => import('@/components/cascade/RecipeMenu').then((module) => module.RecipeMenu),
+  { ssr: false }
+)
 
 interface FloatingToolbarProps {
   prompt: string
@@ -25,6 +38,12 @@ interface FloatingToolbarProps {
   onOpenSettings: () => void
   selectedImagesCount: number
   apiMode: 'litellm' | 'gemini'
+  activeRecipe: AppliedRecipe | null
+  onRecipeApply: (recipe: Recipe) => void
+  onRecipeRemove: () => void
+  onRecipeInfluenceChange: (influence: RecipeInfluence) => void
+  onRecipeUpdated: (recipe: Recipe) => void
+  onRecipeDeleted: (id: string) => void
 }
 
 const HISTORY_STORAGE_KEY = 'prompt-history'
@@ -51,6 +70,23 @@ function savePromptHistory(history: string[]) {
   }
 }
 
+function RecipeAttachmentPreview({ activeRecipe }: { activeRecipe: AppliedRecipe }) {
+  return (
+    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-black/5 dark:bg-white/5">
+      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+        <ImageReference size={17} />
+      </div>
+      {activeRecipe.recipe.image?.thumbnailBlob ? (
+        <BlobImage
+          blob={activeRecipe.recipe.image.thumbnailBlob}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : null}
+    </div>
+  )
+}
+
 export function FloatingToolbar({
   prompt,
   onPromptChange,
@@ -68,11 +104,37 @@ export function FloatingToolbar({
   onOpenSettings,
   selectedImagesCount,
   apiMode,
+  activeRecipe,
+  onRecipeApply,
+  onRecipeRemove,
+  onRecipeInfluenceChange,
+  onRecipeUpdated,
+  onRecipeDeleted,
 }: FloatingToolbarProps) {
   const isMounted = useHydrated()
+  const toolbarRef = useRef<HTMLDivElement>(null)
   const [promptHistory, setPromptHistory] = useState<string[]>(loadPromptHistory)
   const [historyIndex, setHistoryIndex] = useState<number>(-1)
   const [temporaryPrompt, setTemporaryPrompt] = useState<string>('')
+  const [isRecipeMenuOpen, setIsRecipeMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isRecipeMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!toolbarRef.current?.contains(event.target as Node)) setIsRecipeMenuOpen(false)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsRecipeMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isRecipeMenuOpen])
 
   // Get models available for current API mode
   const availableModels = getModelsForApiMode(apiMode)
@@ -162,7 +224,20 @@ export function FloatingToolbar({
   const isHorizontal = width >= height
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
+    <div ref={toolbarRef} className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-3xl px-4">
+      {isRecipeMenuOpen ? (
+        <div className="absolute bottom-full left-4 mb-3">
+          <RecipeMenu
+            apiMode={apiMode}
+            activeRecipe={activeRecipe}
+            onApply={onRecipeApply}
+            onInfluenceChange={onRecipeInfluenceChange}
+            onRecipeUpdated={onRecipeUpdated}
+            onRecipeDeleted={onRecipeDeleted}
+            onClose={() => setIsRecipeMenuOpen(false)}
+          />
+        </div>
+      ) : null}
       <div className="bg-neutral-100/70 dark:bg-neutral-800/70 rounded-2xl shadow-2xl backdrop-blur-[18px] backdrop-saturate-[1.8]">
         {/* Collapsed view - always visible */}
         <div>
@@ -184,6 +259,36 @@ export function FloatingToolbar({
             />
           </div>
 
+          {activeRecipe ? (
+            <div className="flex min-w-0 px-4 pt-2">
+              <div className="inline-flex min-w-0 max-w-full items-stretch overflow-hidden rounded-xl bg-white/55 shadow-sm dark:bg-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsRecipeMenuOpen(true)}
+                  className="flex min-w-0 items-center gap-2 py-1.5 pl-1.5 pr-2 text-left transition-colors hover:bg-white/50 dark:hover:bg-white/5"
+                  aria-label={`Edit attached recipe ${activeRecipe.recipe.name}`}
+                >
+                  <RecipeAttachmentPreview activeRecipe={activeRecipe} />
+                  <span className="min-w-0">
+                    <span className="block max-w-48 truncate text-xs font-semibold">{activeRecipe.recipe.name}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {RECIPE_INFLUENCE_LABELS[activeRecipe.influence]} influence
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onRecipeRemove}
+                  className="flex shrink-0 items-center border-l border-black/5 px-2 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:border-white/10 dark:hover:bg-white/10"
+                  aria-label={`Remove recipe ${activeRecipe.recipe.name}`}
+                  title="Remove recipe"
+                >
+                  <Close size={16} />
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {/* All action buttons in a single row below */}
           <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-3">
             {/* Left side action buttons */}
@@ -197,6 +302,22 @@ export function FloatingToolbar({
               >
                 <AddLarge size={20} />
               </motion.button>
+              <button
+                type="button"
+                onClick={() => setIsRecipeMenuOpen((open) => !open)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg px-2 py-2 transition-colors',
+                  activeRecipe
+                    ? 'bg-white/55 shadow-sm hover:bg-white/75 dark:bg-white/10 dark:hover:bg-white/15'
+                    : 'hover:bg-white/10'
+                )}
+                aria-label="Open recipe library"
+                aria-expanded={isRecipeMenuOpen}
+                title="Recipes"
+              >
+                <ImageReference size={20} />
+                <span className="hidden text-sm font-medium sm:inline">Recipe</span>
+              </button>
               <button
                 onClick={() => {
                   if (availableModelKeys.length <= 1) return

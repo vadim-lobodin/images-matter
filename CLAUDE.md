@@ -27,6 +27,8 @@ Use npm and `package-lock.json`; do not introduce a second lockfile.
 - `lib/gemini-direct-client.ts` calls Google Gemini directly.
 - `lib/litellm-client.ts` calls a LiteLLM `chat/completions` endpoint.
 - `lib/history-store.ts` owns IndexedDB persistence and caps history at 50 items.
+- `lib/recipe-store.ts` owns browser-local recipe persistence; original recipe images and UI-only thumbnails are prepared by `lib/recipe-image.ts`.
+- `lib/recipe-prompt.ts` labels canvas images as edit targets and recipe images as reference-only inputs.
 - `lib/models.ts` is the source of truth for model capabilities and API modes.
 
 ## Browser storage
@@ -36,6 +38,7 @@ Use npm and `package-lock.json`; do not introduce a second lockfile.
 - `litellm_api_key`, `litellm_proxy_url`: proxy credentials
 - `playground_model`, `playground_aspectRatio`, `playground_imageSize`, `playground_numImages`: UI preferences
 - IndexedDB database `ImageGenerationDB`, store `history`: generation history
+- IndexedDB database `ImageRecipeDB`, store `recipes`: reusable prompt/image recipes
 - tldraw persistence key `image-playground-canvas`: canvas state
 
 Never move credentials into application logs or server storage.

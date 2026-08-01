@@ -1,9 +1,12 @@
+import type { RecipeSnapshot } from './recipes'
+
 export interface HistoryItem {
   id: string
   timestamp: number
   mode: 'generate' | 'edit' | 'variations'
   model: string
   prompt?: string
+  recipe?: RecipeSnapshot
   images: Array<{ url?: string; b64_json?: string }>
 }
 

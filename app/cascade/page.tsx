@@ -10,7 +10,7 @@ import { SelectionBadges } from '@/components/canvas/SelectionBadges'
 import { Row, CloseLarge } from '@carbon/icons-react'
 import * as motion from 'motion/react-client'
 import { toast } from 'sonner'
-import { type ModelKey, getModelsForApiMode } from '@/lib/models'
+import { type ModelKey, AVAILABLE_MODELS, getModelsForApiMode, migrateModelKey } from '@/lib/models'
 import {
   type CanvasImageShape,
   type GeneratedImageShape,
@@ -20,6 +20,13 @@ import type { Editor, TLShapeId } from '@tldraw/tldraw'
 import { addToHistory, clearAllHistory } from '@/lib/history-store'
 import { extractImagesFromResponse, type ImageApiResponse } from '@/lib/image-api'
 import { useHydrated } from '@/lib/use-hydrated'
+import {
+  toRecipeSnapshot,
+  type AppliedRecipe,
+  type Recipe,
+  type RecipeInfluence,
+  type RecipeReference,
+} from '@/lib/recipes'
 
 // Dynamically import TldrawCanvas to avoid SSR issues
 const TldrawCanvas = dynamic(
@@ -52,7 +59,7 @@ function readPlaygroundSettings(): PlaygroundSettings {
 
   const apiMode = (localStorage.getItem('api_mode') || fallback.apiMode) as ApiMode
   const availableModels = getModelsForApiMode(apiMode)
-  const savedModel = localStorage.getItem('playground_model')
+  const savedModel = migrateModelKey(localStorage.getItem('playground_model'))
   const model = savedModel && savedModel in availableModels
     ? savedModel as ModelKey
     : (Object.keys(availableModels)[0] as ModelKey | undefined) ?? fallback.model
@@ -123,6 +130,7 @@ export default function PlaygroundPage() {
   const [aspectRatio, setAspectRatio] = useState(initialSettings.aspectRatio)
   const [imageSize, setImageSize] = useState(initialSettings.imageSize)
   const [numImages, setNumImages] = useState(initialSettings.numImages)
+  const [activeRecipe, setActiveRecipe] = useState<AppliedRecipe | null>(null)
   const [selectedImages, setSelectedImages] = useState<CanvasImageShape[]>([])
   const [activeGenerationsCount, setActiveGenerationsCount] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
@@ -163,6 +171,7 @@ export default function PlaygroundPage() {
     }
 
     setActiveGenerationsCount(prev => prev + 1)
+    const recipeToUse = activeRecipe
 
     try {
       const canvasHelpers = await loadCanvasHelpers()
@@ -177,6 +186,27 @@ export default function PlaygroundPage() {
       let inputImages: string[] | undefined
       let imageIds: number[] | undefined
       let combinedPromptHistory: string[] = []
+
+      const recipeImageCount = recipeToUse?.recipe.image ? 1 : 0
+      const maxInputImages = AVAILABLE_MODELS[model]?.maxInputImages ?? 3
+      if (selectedImages.length + recipeImageCount > maxInputImages) {
+        throw new Error(
+          `${AVAILABLE_MODELS[model]?.shortName ?? 'This model'} supports up to ${maxInputImages} input images. Deselect an image or remove the recipe reference.`
+        )
+      }
+
+      let recipeReference: RecipeReference | undefined
+      if (recipeToUse) {
+        const imageData = recipeToUse.recipe.image
+          ? await import('@/lib/recipe-image').then(({ blobToDataUrl }) => blobToDataUrl(recipeToUse.recipe.image!.blob))
+          : undefined
+        recipeReference = {
+          name: recipeToUse.recipe.name,
+          prompt: recipeToUse.recipe.prompt,
+          influence: recipeToUse.influence,
+          imageData,
+        }
+      }
 
       if (isEdit) {
         inputImages = await canvasHelpers.extractImageDataFromShapes(selectedImages, editor)
@@ -235,6 +265,7 @@ export default function PlaygroundPage() {
           imageSize,
           numImages,
           apiKey: credentials.apiKey,
+          recipe: recipeReference,
         }
 
         let response: ImageApiResponse
@@ -287,6 +318,7 @@ export default function PlaygroundPage() {
             numImages: 1,
             apiKey: credentials.apiKey,
             baseURL: credentials.proxyUrl,
+            recipe: recipeReference,
           }
 
           const request = isEdit
@@ -337,11 +369,13 @@ export default function PlaygroundPage() {
         mode: isEdit ? 'edit' : 'generate',
         model,
         prompt,
+        recipe: recipeToUse ? toRecipeSnapshot(recipeToUse) : undefined,
         images: successfulImages.map((url) => ({ url })),
       })
 
       // Clear prompt on success
       setPrompt('')
+      setActiveRecipe(null)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate image'
       
@@ -472,6 +506,24 @@ export default function PlaygroundPage() {
     }
   }
 
+  const handleRecipeApply = useCallback((recipe: Recipe) => {
+    setActiveRecipe({ recipe, influence: recipe.defaultInfluence })
+  }, [])
+
+  const handleRecipeInfluenceChange = useCallback((influence: RecipeInfluence) => {
+    setActiveRecipe((current) => current ? { ...current, influence } : current)
+  }, [])
+
+  const handleRecipeUpdated = useCallback((recipe: Recipe) => {
+    setActiveRecipe((current) => current?.recipe.id === recipe.id
+      ? { ...current, recipe }
+      : current)
+  }, [])
+
+  const handleRecipeDeleted = useCallback((id: string) => {
+    setActiveRecipe((current) => current?.recipe.id === id ? null : current)
+  }, [])
+
   // Memoized selection change handler to prevent infinite loops
   const handleSelectionChange = useCallback((images: CanvasImageShape[]) => {
     if (!editorRef.current) return
@@ -593,6 +645,12 @@ export default function PlaygroundPage() {
         onOpenSettings={() => setShowSettings(true)}
         selectedImagesCount={selectedImages.length}
         apiMode={apiMode}
+        activeRecipe={activeRecipe}
+        onRecipeApply={handleRecipeApply}
+        onRecipeRemove={() => setActiveRecipe(null)}
+        onRecipeInfluenceChange={handleRecipeInfluenceChange}
+        onRecipeUpdated={handleRecipeUpdated}
+        onRecipeDeleted={handleRecipeDeleted}
       />
 
       {/* Hidden file input for uploads */}

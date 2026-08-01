@@ -8,6 +8,7 @@ A browser-based canvas for generating and editing images with Google Gemini. It 
 - Edit selected or uploaded images with multi-image context.
 - Arrange results on an infinite tldraw canvas.
 - Choose model-specific aspect ratios and resolutions.
+- Save reusable prompt and image recipes with adjustable visual influence.
 - Reuse locally stored generation history.
 - Keep API credentials in browser storage rather than on the application server.
 
@@ -73,6 +74,9 @@ lib/
 ├── litellm-client.ts             LiteLLM chat-completions client
 ├── image-api.ts                  Shared image response parsing
 ├── history-store.ts              IndexedDB history persistence
+├── recipe-store.ts               IndexedDB recipe persistence
+├── recipe-image.ts               Original reference-image preservation and thumbnails
+├── recipe-prompt.ts              Recipe and edit-target prompt composition
 └── models.ts                     Supported models and capabilities
 ```
 
@@ -83,7 +87,8 @@ The tldraw component and canvas helpers are loaded on demand so the main route d
 - The application has no server-side credential store.
 - API keys are sent only to the selected Gemini endpoint or configured LiteLLM proxy.
 - History is capped at the latest 50 entries.
-- Clearing browser site data removes credentials, settings, canvas persistence, and history.
+- Recipes and their original reference images remain in browser-local IndexedDB.
+- Clearing browser site data removes credentials, settings, canvas persistence, recipes, and history.
 
 ## Validation
 

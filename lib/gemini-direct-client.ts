@@ -1,6 +1,8 @@
 // Direct Google Gemini API client for image generation
 // Based on https://ai.google.dev/gemini-api/docs/image-generation
 import { getApiErrorMessage, type ImageApiResponse } from './image-api'
+import { composeGenerationPrompt } from './recipe-prompt'
+import type { RecipeReference } from './recipes'
 
 export interface GeminiImageRequest {
   model: string;
@@ -9,6 +11,7 @@ export interface GeminiImageRequest {
   imageSize?: string; // Ignored by Gemini API (always 1024px base)
   numImages?: number;
   apiKey: string;
+  recipe?: RecipeReference;
 }
 
 export interface GeminiImageEditRequest {
@@ -21,6 +24,7 @@ export interface GeminiImageEditRequest {
   imageSize?: string; // Ignored by Gemini API
   numImages?: number;
   apiKey: string;
+  recipe?: RecipeReference;
 }
 
 export type GeminiImageResponse = ImageApiResponse
@@ -57,26 +61,16 @@ function buildGeminiRequest(
   imageSize: string | undefined,
   promptHistory: string[] | undefined,
   imageIds: number[] | undefined,
-  modelName: string
+  modelName: string,
+  recipe: RecipeReference | undefined
 ): Record<string, unknown> {
-  // Build enhanced prompt with history context (similar to LiteLLM client)
-  let enhancedPrompt = '';
-
-  if (promptHistory && promptHistory.length > 0) {
-    enhancedPrompt += '[Context - Previous editing iterations:]\n';
-    promptHistory.forEach((prevPrompt, index) => {
-      enhancedPrompt += `${index + 1}. "${prevPrompt}"\n`;
-    });
-    enhancedPrompt += '\n';
-  }
-
-  enhancedPrompt += '[Current request:]\n';
-  enhancedPrompt += prompt;
-
-  if (imageIds && imageIds.length > 0 && images && imageIds.length === images.length) {
-    const imageRefs = imageIds.map(id => `Image ${id}`).join(', ');
-    enhancedPrompt += `\n\n[Selected images: ${imageRefs}]`;
-  }
+  const enhancedPrompt = composeGenerationPrompt({
+    prompt,
+    promptHistory,
+    sourceImageIds: imageIds,
+    sourceImageCount: images?.length ?? 0,
+    recipe,
+  })
 
   // Build parts array
   const parts: GeminiPart[] = [{ text: enhancedPrompt }];
@@ -92,6 +86,11 @@ function buildGeminiRequest(
         },
       });
     }
+  }
+
+  if (recipe?.imageData) {
+    const { mimeType, data } = stripDataUrlPrefix(recipe.imageData)
+    parts.push({ inlineData: { mimeType, data } })
   }
 
   // Build generation config
@@ -169,7 +168,8 @@ async function makeSingleGeminiRequest(
   aspectRatio: string | undefined,
   imageSize: string | undefined,
   promptHistory: string[] | undefined,
-  imageIds: number[] | undefined
+  imageIds: number[] | undefined,
+  recipe: RecipeReference | undefined
 ): Promise<GeminiImageResponse> {
   if (!apiKey) {
     throw new Error(
@@ -184,7 +184,7 @@ async function makeSingleGeminiRequest(
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   // Build request body
-  const requestBody = buildGeminiRequest(prompt, images, aspectRatio, imageSize, promptHistory, imageIds, modelName);
+  const requestBody = buildGeminiRequest(prompt, images, aspectRatio, imageSize, promptHistory, imageIds, modelName, recipe);
 
   // Make network request
   let response;
@@ -258,16 +258,16 @@ async function makeSingleGeminiRequest(
 export async function generateGeminiImage(
   request: GeminiImageRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, model, prompt, aspectRatio, imageSize, numImages = 1 } = request;
+  const { apiKey, model, prompt, aspectRatio, imageSize, numImages = 1, recipe } = request;
 
   if (numImages === 1) {
     // Single image - simple request
-    return makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, imageSize, undefined, undefined);
+    return makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, imageSize, undefined, undefined, recipe);
   }
 
   // Multiple images - make parallel requests
   const requests = Array.from({ length: numImages }, () =>
-    makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, imageSize, undefined, undefined)
+    makeSingleGeminiRequest(model, prompt, apiKey, undefined, aspectRatio, imageSize, undefined, undefined, recipe)
   );
 
   const results = await Promise.allSettled(requests);
@@ -307,16 +307,16 @@ export async function generateGeminiImage(
 export async function editGeminiImage(
   request: GeminiImageEditRequest
 ): Promise<GeminiImageResponse> {
-  const { apiKey, model, prompt, images, imageIds, promptHistory, aspectRatio, imageSize, numImages = 1 } = request;
+  const { apiKey, model, prompt, images, imageIds, promptHistory, aspectRatio, imageSize, numImages = 1, recipe } = request;
 
   if (numImages === 1) {
     // Single image - simple request
-    return makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, imageSize, promptHistory, imageIds);
+    return makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, imageSize, promptHistory, imageIds, recipe);
   }
 
   // Multiple images - make parallel requests
   const requests = Array.from({ length: numImages }, () =>
-    makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, imageSize, promptHistory, imageIds)
+    makeSingleGeminiRequest(model, prompt, apiKey, images, aspectRatio, imageSize, promptHistory, imageIds, recipe)
   );
 
   const results = await Promise.allSettled(requests);
