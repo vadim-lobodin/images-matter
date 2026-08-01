@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { ApiSettings } from '@/components/cascade/ApiSettings'
 
 const meta: Meta<typeof ApiSettings> = {

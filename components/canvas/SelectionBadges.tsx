@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import type { Editor, TLShapeId } from '@tldraw/tldraw'
+import { useValue, type Editor, type TLShapeId } from '@tldraw/tldraw'
 
 interface SelectionBadgesProps {
   editor: Editor | null
@@ -57,33 +56,11 @@ function calculateAllBadges(
 }
 
 export function SelectionBadges({ editor, selectionIdMap }: SelectionBadgesProps) {
-  const [badges, setBadges] = useState<Array<{ id: TLShapeId; number: number; x: number; y: number }>>([])
-
-  useEffect(() => {
-    if (!editor || selectionIdMap.size === 0) {
-      setBadges([])
-      return
-    }
-
-    // Function to update badge positions
-    const updateBadgePositions = () => {
-      setBadges(calculateAllBadges(editor, selectionIdMap))
-    }
-
-    // Calculate initial badge positions
-    updateBadgePositions()
-
-    // Listen to ALL store changes (camera movements, shape changes, etc.)
-    // This ensures badges update during pan, zoom, and shape movements
-    const unsubscribe = editor.store.listen(() => {
-      // Recalculate immediately on every change for smooth tracking
-      updateBadgePositions()
-    }, { scope: 'all' })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [editor, selectionIdMap])
+  const badges = useValue(
+    'selection badges',
+    () => editor && selectionIdMap.size > 0 ? calculateAllBadges(editor, selectionIdMap) : [],
+    [editor, selectionIdMap]
+  )
 
   if (badges.length === 0) return null
 

@@ -1,4 +1,6 @@
 // Gemini image generation through LiteLLM proxy using chat/completions
+import { getApiErrorMessage, type ImageApiResponse } from './image-api'
+
 export interface GeminiImageRequest {
   model: string;
   prompt: string;
@@ -22,21 +24,19 @@ export interface GeminiImageEditRequest {
   baseURL: string;
 }
 
-export interface GeminiImageResponse {
-  choices: Array<{
-    message: {
-      content?: string;
-      images?: string[]; // data URLs with base64 images
-    };
-  }>;
+export type GeminiImageResponse = ImageApiResponse
+
+interface LiteLLMContentPart {
+  type: 'text' | 'image_url'
+  text?: string
+  image_url?: { url: string }
 }
 
 // Shared function to make API request to LiteLLM proxy
 async function makeLiteLLMRequest(
   apiKey: string,
   baseURL: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  requestBody: any
+  requestBody: Record<string, unknown>
 ): Promise<GeminiImageResponse> {
   if (!apiKey || !baseURL) {
     throw new Error(
@@ -88,7 +88,7 @@ async function makeLiteLLMRequest(
 
   // Handle error responses
   if (!response.ok) {
-    let errorData: any = {};
+    let errorData: unknown = {};
     try {
       errorData = await response.json();
     } catch (e) {
@@ -97,11 +97,8 @@ async function makeLiteLLMRequest(
     }
 
     // Extract error message from various possible locations in the response
-    let errorMessage =
-      errorData.error?.message ||
-      errorData.message ||
-      errorData.detail ||
-      `API error: ${response.status} ${response.statusText}`;
+    const apiErrorMessage = getApiErrorMessage(errorData)
+    let errorMessage = apiErrorMessage || `API error: ${response.status} ${response.statusText}`;
 
     // Provide user-friendly messages for common errors
     if (response.status === 401 || response.status === 403) {
@@ -112,10 +109,8 @@ async function makeLiteLLMRequest(
       errorMessage = "Rate Limit Exceeded\n\nToo many requests. Please try again in a few moments.";
     } else if (response.status === 400) {
       // For 400 errors, use the specific error message from the API
-      if (errorData.error?.message) {
-        errorMessage = `Bad Request\n\n${errorData.error.message}`;
-      } else if (errorData.message) {
-        errorMessage = `Bad Request\n\n${errorData.message}`;
+      if (apiErrorMessage) {
+        errorMessage = `Bad Request\n\n${apiErrorMessage}`;
       } else {
         errorMessage = "Bad Request\n\nThe request was invalid. Please check your settings and try again.";
       }
@@ -128,21 +123,18 @@ async function makeLiteLLMRequest(
 
   // Parse and return success response
   const result = await response.json();
-  return result;
+  return result as GeminiImageResponse;
 }
 
 // Helper function to build request body with common parameters
 function buildRequestBody(
   model: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  content: string | any[],
+  content: string | LiteLLMContentPart[],
   numImages: number,
   aspectRatio?: string,
   imageSize?: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestBody: any = {
+): Record<string, unknown> {
+  const requestBody: Record<string, unknown> = {
     model,
     messages: [
       {
@@ -157,8 +149,7 @@ function buildRequestBody(
   // Build image config for image parameters
   // Use top-level image_config with snake_case keys (supported since LiteLLM v1.80.7)
   if (aspectRatio || imageSize) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const imageConfig: any = {};
+    const imageConfig: Record<string, string> = {};
     if (aspectRatio) {
       imageConfig.aspect_ratio = aspectRatio;
     }
@@ -209,13 +200,12 @@ export async function editGeminiImage(
   }
 
   // Build multimodal content array with text and images
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const content: any[] = [
+  const content: LiteLLMContentPart[] = [
     {
       type: "text",
       text: enhancedPrompt,
     },
-    ...images.map(imageUrl => ({
+    ...images.map((imageUrl): LiteLLMContentPart => ({
       type: "image_url",
       image_url: {
         url: imageUrl,

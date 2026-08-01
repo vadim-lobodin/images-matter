@@ -1,8 +1,19 @@
 'use client'
 
-import { Tldraw, TLComponents, defaultShapeUtils, useEditor, useValue } from '@tldraw/tldraw'
-import { GeneratedImageShapeUtil, GeneratedImageShape } from '@/lib/canvas/ImageShape'
-import { CustomImageToolbar } from './CustomImageToolbar'
+import {
+  Tldraw,
+  type Editor,
+  type TLComponents,
+  type TLShape,
+  type TLShapeId,
+  defaultShapeUtils,
+  useEditor,
+  useValue,
+} from '@tldraw/tldraw'
+import {
+  type CanvasImageShape,
+  GeneratedImageShapeUtil,
+} from '@/lib/canvas/ImageShape'
 import { useTheme } from 'next-themes'
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import '@tldraw/tldraw/tldraw.css'
@@ -72,7 +83,7 @@ function DottedGrid() {
         ctx.fill()
       }
     }
-  }, [screenBounds, camera, size, devicePixelRatio, editor, isDarkMode])
+  }, [screenBounds, devicePixelRatio, editor, isDarkMode, cameraX, cameraY, zoom])
 
   return <canvas className="tl-grid" ref={canvas} />
 }
@@ -92,27 +103,21 @@ const components: TLComponents = {
   HelpMenu: null,
   ZoomMenu: null,
   MainMenu: null,
-  ImageToolbar: CustomImageToolbar, // Custom toolbar for all image types
+  ImageToolbar: null,
   RichTextToolbar: null, // Hide text toolbar
   VideoToolbar: null, // Hide video toolbar
   Background: DottedGrid, // Add custom dotted grid as Background
 }
 
 interface TldrawCanvasProps {
-  onSelectionChange?: (selectedImages: GeneratedImageShape[]) => void
-  onReady?: (editor: any) => void
+  onSelectionChange?: (selectedImages: CanvasImageShape[]) => void
+  onReady?: (editor: Editor) => void
   onDrop?: (imageUrl: string, position: { x: number; y: number }) => void
 }
 
 export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanvasProps) {
   const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const [editor, setEditor] = useState<any>(null)
-
-  // Avoid hydration mismatch
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [editor, setEditor] = useState<Editor | null>(null)
 
   // Sync theme with tldraw when it changes
   useEffect(() => {
@@ -128,33 +133,25 @@ export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanva
   useEffect(() => {
     if (!editor) return
 
-    console.log('TldrawCanvas: Setting up selection listener')
-
-    let prevSelectedIds = new Set<string>()
+    let prevSelectedIds = new Set<TLShapeId>()
 
     // Track selection changes
     const handleSelectionChange = () => {
       const selectedShapes = editor.getSelectedShapes()
       const selectedImages = selectedShapes.filter(
-        (shape: any) => shape.type === 'generated-image' || shape.type === 'image'
-      ) as GeneratedImageShape[]
-
-      console.log('Selection changed:', {
-        totalSelected: selectedShapes.length,
-        imageShapesSelected: selectedImages.length,
-        shapeTypes: selectedShapes.map((s: any) => s.type),
-        selectedIds: Array.from(editor.getSelectedShapeIds())
-      })
+        (shape: TLShape): shape is CanvasImageShape =>
+          shape.type === 'generated-image' || shape.type === 'image'
+      )
 
       onSelectionChange?.(selectedImages)
 
       // Update previous selection
-      prevSelectedIds = new Set<string>(editor.getSelectedShapeIds() as Iterable<string>)
+      prevSelectedIds = new Set(editor.getSelectedShapeIds())
     }
 
     // Use store listener to catch any changes
     const unsubscribe = editor.store.listen(() => {
-      const currentSelectedIds = new Set<string>(editor.getSelectedShapeIds() as Iterable<string>)
+      const currentSelectedIds = new Set(editor.getSelectedShapeIds())
 
       // Check if selection has changed
       const selectionChanged =
@@ -170,14 +167,10 @@ export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanva
     handleSelectionChange()
 
     // Cleanup listener on unmount
-    return () => {
-      console.log('TldrawCanvas: Cleaning up selection listener')
-      unsubscribe()
-    }
+    return unsubscribe
   }, [editor, onSelectionChange])
 
-  const handleMount = (editorInstance: any) => {
-    console.log('TldrawCanvas: Editor mounted')
+  const handleMount = (editorInstance: Editor) => {
     setEditor(editorInstance)
     onReady?.(editorInstance)
   }
@@ -219,13 +212,6 @@ export function TldrawCanvas({ onSelectionChange, onReady, onDrop }: TldrawCanva
         reader.readAsDataURL(file)
       }
     }
-  }
-
-  // Don't render until mounted to avoid SSR issues
-  if (!mounted) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', background: 'hsl(var(--background))' }} />
-    )
   }
 
   return (

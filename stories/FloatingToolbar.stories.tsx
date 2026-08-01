@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
 import type { ModelKey } from '@/lib/models'
 

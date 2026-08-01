@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { AddLarge, Settings, ArrowUp, Image, DocumentHorizontal, DocumentVertical, FitToWidth, AiLabel, AiGenerate } from '@carbon/icons-react'
+import { useState, useCallback } from 'react'
+import { AddLarge, Settings, ArrowUp, Image as ImageIcon, DocumentHorizontal, DocumentVertical, FitToWidth, AiLabel, AiGenerate } from '@carbon/icons-react'
 import { PromptInput } from '@/components/cascade/PromptInput'
 import { cn } from '@/lib/utils'
 import { type ModelKey, AVAILABLE_MODELS, getModelsForApiMode } from '@/lib/models'
 import * as motion from 'motion/react-client'
+import { useHydrated } from '@/lib/use-hydrated'
 
 interface FloatingToolbarProps {
   prompt: string
@@ -68,22 +69,14 @@ export function FloatingToolbar({
   selectedImagesCount,
   apiMode,
 }: FloatingToolbarProps) {
-  const [isMounted, setIsMounted] = useState(false)
-  const [promptHistory, setPromptHistory] = useState<string[]>([])
+  const isMounted = useHydrated()
+  const [promptHistory, setPromptHistory] = useState<string[]>(loadPromptHistory)
   const [historyIndex, setHistoryIndex] = useState<number>(-1)
   const [temporaryPrompt, setTemporaryPrompt] = useState<string>('')
 
   // Get models available for current API mode
   const availableModels = getModelsForApiMode(apiMode)
   const availableModelKeys = Object.keys(availableModels) as ModelKey[]
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true)
-    // Load history from localStorage
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPromptHistory(loadPromptHistory())
-  }, [])
 
   const buttonLabel = selectedImagesCount > 0
     ? `Edit ${selectedImagesCount} image${selectedImagesCount > 1 ? 's' : ''}`
@@ -94,13 +87,13 @@ export function FloatingToolbar({
   const availableImageSizes = modelConfig?.imageSizes || ['1K']
 
   const handleAspectRatioClick = () => {
-    const currentIndex = availableAspectRatios.indexOf(aspectRatio as any)
+    const currentIndex = availableAspectRatios.findIndex((ratio) => ratio === aspectRatio)
     const nextIndex = (currentIndex + 1) % availableAspectRatios.length
     onAspectRatioChange(availableAspectRatios[nextIndex])
   }
 
   const handleImageSizeClick = () => {
-    const currentIndex = availableImageSizes.indexOf(imageSize as any)
+    const currentIndex = availableImageSizes.findIndex((size) => size === imageSize)
     const nextIndex = (currentIndex + 1) % availableImageSizes.length
     onImageSizeChange(availableImageSizes[nextIndex])
   }
@@ -241,7 +234,7 @@ export function FloatingToolbar({
                 className="flex items-center gap-1.5 px-2 py-2 rounded-lg hover:bg-white/10 transition-colors"
                 title="Number of images to generate"
               >
-                <Image size={20} />
+                <ImageIcon size={20} />
                 <span className="text-sm font-medium tabular-nums inline-block overflow-hidden">
                   <motion.span
                     key={numImages}
@@ -316,7 +309,7 @@ export function FloatingToolbar({
             {/* Right side: Generate/Edit button */}
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim()}
+              disabled={!prompt.trim() || activeGenerationsCount > 0}
               title={buttonLabel}
               className={cn(
                 'p-3 rounded-full font-medium transition-all flex items-center justify-center -translate-y-2',

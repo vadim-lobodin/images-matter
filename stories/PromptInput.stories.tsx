@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { PromptInput } from '@/components/cascade/PromptInput'
 
 const meta: Meta<typeof PromptInput> = {

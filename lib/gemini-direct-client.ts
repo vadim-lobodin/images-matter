@@ -1,5 +1,6 @@
 // Direct Google Gemini API client for image generation
 // Based on https://ai.google.dev/gemini-api/docs/image-generation
+import { getApiErrorMessage, type ImageApiResponse } from './image-api'
 
 export interface GeminiImageRequest {
   model: string;
@@ -22,13 +23,20 @@ export interface GeminiImageEditRequest {
   apiKey: string;
 }
 
-export interface GeminiImageResponse {
-  choices: Array<{
-    message: {
-      content?: string;
-      images?: string[];
-    };
-  }>;
+export type GeminiImageResponse = ImageApiResponse
+
+interface GeminiPart {
+  text?: string
+  inlineData?: { mimeType: string; data: string }
+}
+
+interface GeminiApiResponse {
+  candidates?: Array<{ content?: { parts?: GeminiPart[] } }>
+}
+
+interface GeminiGenerationConfig {
+  responseModalities: string[]
+  imageConfig?: Record<string, string>
 }
 
 // Strip data URL prefix and extract base64 + mime type
@@ -50,8 +58,7 @@ function buildGeminiRequest(
   promptHistory: string[] | undefined,
   imageIds: number[] | undefined,
   modelName: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): Record<string, unknown> {
   // Build enhanced prompt with history context (similar to LiteLLM client)
   let enhancedPrompt = '';
 
@@ -72,8 +79,7 @@ function buildGeminiRequest(
   }
 
   // Build parts array
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parts: any[] = [{ text: enhancedPrompt }];
+  const parts: GeminiPart[] = [{ text: enhancedPrompt }];
 
   // Add images if provided (for editing)
   if (images && images.length > 0) {
@@ -89,14 +95,12 @@ function buildGeminiRequest(
   }
 
   // Build generation config
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generationConfig: any = {
+  const generationConfig: GeminiGenerationConfig = {
     responseModalities: ["Text", "Image"],
   };
 
   // Build image config with aspect ratio and size
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const imageConfig: any = {};
+  const imageConfig: Record<string, string> = {};
 
   if (aspectRatio) {
     imageConfig.aspectRatio = aspectRatio;
@@ -124,8 +128,7 @@ function buildGeminiRequest(
 }
 
 // Convert Gemini API response to LiteLLM format
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function convertGeminiResponse(geminiResponse: any): GeminiImageResponse {
+function convertGeminiResponse(geminiResponse: GeminiApiResponse): GeminiImageResponse {
   const images: string[] = [];
   let textContent = '';
 
@@ -208,7 +211,7 @@ async function makeSingleGeminiRequest(
 
   // Handle error responses
   if (!response.ok) {
-    let errorData: any = {};
+    let errorData: unknown = {};
     try {
       errorData = await response.json();
     } catch (e) {
@@ -217,11 +220,8 @@ async function makeSingleGeminiRequest(
     }
 
     // Extract error message from various possible locations in the response
-    let errorMessage =
-      errorData.error?.message ||
-      errorData.message ||
-      errorData.detail ||
-      `API error: ${response.status} ${response.statusText}`;
+    const apiErrorMessage = getApiErrorMessage(errorData)
+    let errorMessage = apiErrorMessage || `API error: ${response.status} ${response.statusText}`;
 
     // Provide user-friendly messages for common errors
     if (response.status === 401 || response.status === 403) {
@@ -232,16 +232,14 @@ async function makeSingleGeminiRequest(
       errorMessage = "Rate Limit Exceeded\n\nToo many requests. Please try again in a few moments.";
     } else if (response.status === 400) {
       // For 400 errors, use the specific error message from the API
-      if (errorData.error?.message) {
-        errorMessage = `Bad Request\n\n${errorData.error.message}`;
-      } else if (errorData.message) {
-        errorMessage = `Bad Request\n\n${errorData.message}`;
+      if (apiErrorMessage) {
+        errorMessage = `Bad Request\n\n${apiErrorMessage}`;
       } else {
         errorMessage = "Bad Request\n\nThe request was invalid. Please check your settings and try again.";
       }
     } else if (response.status >= 500) {
       // For 500 errors, include the actual error message if available
-      const serverError = errorData.error?.message || errorData.message || '';
+      const serverError = apiErrorMessage || '';
       errorMessage = serverError
         ? `Server Error (${response.status})\n\n${serverError}`
         : `Server Error (${response.status})\n\nThe API server encountered an error. Please try again later.`;
@@ -253,7 +251,7 @@ async function makeSingleGeminiRequest(
 
   // Parse and return success response
   const result = await response.json();
-  return convertGeminiResponse(result);
+  return convertGeminiResponse(result as GeminiApiResponse);
 }
 
 // Generate images using direct Gemini API (single image per request)
@@ -280,7 +278,8 @@ export async function generateGeminiImage(
 
   for (const result of results) {
     if (result.status === 'fulfilled') {
-      const images = result.value.choices[0].message.images || [];
+      const images = (result.value.choices[0].message.images || [])
+        .filter((image): image is string => typeof image === 'string');
       allImages.push(...images);
     } else {
       errors.push(result.reason?.message || 'Unknown error');
@@ -328,7 +327,8 @@ export async function editGeminiImage(
 
   for (const result of results) {
     if (result.status === 'fulfilled') {
-      const resultImages = result.value.choices[0].message.images || [];
+      const resultImages = (result.value.choices[0].message.images || [])
+        .filter((image): image is string => typeof image === 'string');
       allImages.push(...resultImages);
     } else {
       errors.push(result.reason?.message || 'Unknown error');

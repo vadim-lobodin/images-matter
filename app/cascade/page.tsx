@@ -2,16 +2,24 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import dynamic from 'next/dynamic'
+import NextImage from 'next/image'
 import { FloatingToolbar } from '@/components/canvas/FloatingToolbar'
-import { HistoryModal, addToHistory, clearAllHistory } from '@/components/canvas/HistoryModal'
+import { HistoryModal } from '@/components/canvas/HistoryModal'
 import { ApiSettings } from '@/components/cascade/ApiSettings'
 import { SelectionBadges } from '@/components/canvas/SelectionBadges'
 import { Row, CloseLarge } from '@carbon/icons-react'
 import * as motion from 'motion/react-client'
 import { toast } from 'sonner'
 import { type ModelKey, getModelsForApiMode } from '@/lib/models'
-import type { GeneratedImageShape } from '@/lib/canvas/ImageShape'
+import {
+  type CanvasImageShape,
+  type GeneratedImageShape,
+  isGeneratedImageShape,
+} from '@/lib/canvas/ImageShape'
 import type { Editor, TLShapeId } from '@tldraw/tldraw'
+import { addToHistory, clearAllHistory } from '@/lib/history-store'
+import { extractImagesFromResponse, type ImageApiResponse } from '@/lib/image-api'
+import { useHydrated } from '@/lib/use-hydrated'
 
 // Dynamically import TldrawCanvas to avoid SSR issues
 const TldrawCanvas = dynamic(
@@ -19,18 +27,45 @@ const TldrawCanvas = dynamic(
   { ssr: false }
 )
 
-// Dynamically import canvas helpers to avoid tldraw SSR issues
-const canvasHelpers = {
-  addImagesToCanvas: null as any,
-  extractImageDataFromShapes: null as any,
-  getSelectionCenter: null as any,
-  getViewportCenter: null as any,
-  addImageToCanvas: null as any,
-  createLoadingPlaceholders: null as any,
-  getPositionNearSelection: null as any,
-  getDimensionsFromAspectRatio: null as any,
-  findEmptySpace: null as any,
-  focusAndCenterShapes: null as any,
+const loadCanvasHelpers = () => import('@/lib/canvas/canvasHelpers')
+
+type ApiMode = 'litellm' | 'gemini'
+
+interface PlaygroundSettings {
+  apiMode: ApiMode
+  model: ModelKey
+  aspectRatio: string
+  imageSize: string
+  numImages: number
+}
+
+function readPlaygroundSettings(): PlaygroundSettings {
+  const fallback: PlaygroundSettings = {
+    apiMode: 'litellm',
+    model: 'vertex_ai/gemini-2.5-flash-image',
+    aspectRatio: '16:9',
+    imageSize: '1K',
+    numImages: 1,
+  }
+
+  if (typeof window === 'undefined') return fallback
+
+  const apiMode = (localStorage.getItem('api_mode') || fallback.apiMode) as ApiMode
+  const availableModels = getModelsForApiMode(apiMode)
+  const savedModel = localStorage.getItem('playground_model')
+  const model = savedModel && savedModel in availableModels
+    ? savedModel as ModelKey
+    : (Object.keys(availableModels)[0] as ModelKey | undefined) ?? fallback.model
+  const modelConfig = availableModels[model]
+  const savedCount = Number.parseInt(localStorage.getItem('playground_numImages') || '', 10)
+
+  return {
+    apiMode,
+    model,
+    aspectRatio: localStorage.getItem('playground_aspectRatio') || modelConfig?.aspectRatios[0] || fallback.aspectRatio,
+    imageSize: localStorage.getItem('playground_imageSize') || modelConfig?.imageSizes[0] || fallback.imageSize,
+    numImages: Number.isFinite(savedCount) && savedCount >= 1 && savedCount <= 4 ? savedCount : fallback.numImages,
+  }
 }
 
 // Helper to get API credentials from localStorage
@@ -52,66 +87,56 @@ function getApiCredentials() {
 // Reusable empty map to avoid creating new instances
 const EMPTY_MAP = new Map<TLShapeId, number>()
 
+async function updateGeneratedImageShape(
+  editor: Editor,
+  shapeId: TLShapeId,
+  imageUrl: string
+): Promise<void> {
+  const image = new Image()
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('Failed to load image'))
+    image.src = imageUrl
+  })
+
+  editor.updateShape<GeneratedImageShape>({
+    id: shapeId,
+    type: 'generated-image',
+    props: {
+      imageData: imageUrl,
+      isLoading: false,
+      w: image.naturalWidth,
+      h: image.naturalHeight,
+    },
+  })
+}
+
 export default function PlaygroundPage() {
+  const isHydrated = useHydrated()
+  const [initialSettings] = useState(readPlaygroundSettings)
   const [editor, setEditor] = useState<Editor | null>(null)
   const editorRef = useRef<Editor | null>(null)
   const [selectionIdMap, setSelectionIdMap] = useState<Map<TLShapeId, number>>(EMPTY_MAP)
-  const [apiMode, setApiMode] = useState<'litellm' | 'gemini'>('litellm')
-  const [model, setModel] = useState<ModelKey>('vertex_ai/gemini-2.5-flash-image')
+  const [apiMode] = useState<ApiMode>(initialSettings.apiMode)
+  const [model, setModel] = useState<ModelKey>(initialSettings.model)
   const [prompt, setPrompt] = useState('')
-  const [aspectRatio, setAspectRatio] = useState('16:9')
-  const [imageSize, setImageSize] = useState('1K')
-  const [numImages, setNumImages] = useState(1)
-  const [selectedImages, setSelectedImages] = useState<GeneratedImageShape[]>([])
+  const [aspectRatio, setAspectRatio] = useState(initialSettings.aspectRatio)
+  const [imageSize, setImageSize] = useState(initialSettings.imageSize)
+  const [numImages, setNumImages] = useState(initialSettings.numImages)
+  const [selectedImages, setSelectedImages] = useState<CanvasImageShape[]>([])
   const [activeGenerationsCount, setActiveGenerationsCount] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [historyCount, setHistoryCount] = useState(0)
   const [historyReloadTrigger, setHistoryReloadTrigger] = useState(0)
-  const [helpersLoaded, setHelpersLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load API mode from localStorage and update when settings change
+  // Show the confirmation after the settings dialog reloads the page.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedMode = (localStorage.getItem('api_mode') || 'litellm') as 'litellm' | 'gemini'
-      setApiMode(savedMode)
-
-      // Switch to first available model for this mode
-      const modelsForMode = getModelsForApiMode(savedMode)
-      const modelKeys = Object.keys(modelsForMode) as ModelKey[]
-      if (modelKeys.length > 0 && !modelsForMode[model]) {
-        setModel(modelKeys[0])
-        // Also reset aspect ratio and image size to defaults for new model
-        const newModelConfig = modelsForMode[modelKeys[0]]
-        if (newModelConfig) {
-          setAspectRatio(newModelConfig.aspectRatios[0])
-          setImageSize(newModelConfig.imageSizes[0])
-        }
-      }
-
-      const justSaved = localStorage.getItem('settings_just_saved')
-      if (justSaved === 'true') {
-        localStorage.removeItem('settings_just_saved')
-        toast.success('API credentials saved successfully')
-      }
-    }
-  }, [model])
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedModel = localStorage.getItem('playground_model')
-      if (savedModel) setModel(savedModel as ModelKey)
-
-      const savedAspectRatio = localStorage.getItem('playground_aspectRatio')
-      if (savedAspectRatio) setAspectRatio(savedAspectRatio)
-
-      const savedImageSize = localStorage.getItem('playground_imageSize')
-      if (savedImageSize) setImageSize(savedImageSize)
-
-      const savedNumImages = localStorage.getItem('playground_numImages')
-      if (savedNumImages) setNumImages(parseInt(savedNumImages))
+    const justSaved = localStorage.getItem('settings_just_saved')
+    if (justSaved === 'true') {
+      localStorage.removeItem('settings_just_saved')
+      toast.success('API credentials saved successfully')
     }
   }, [])
 
@@ -131,61 +156,8 @@ export default function PlaygroundPage() {
   useEffect(() => {
     localStorage.setItem('playground_numImages', numImages.toString())
   }, [numImages])
-
-
-  // Load canvas helpers dynamically on client side only
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      import('@/lib/canvas/canvasHelpers').then((mod) => {
-        canvasHelpers.addImagesToCanvas = mod.addImagesToCanvas
-        canvasHelpers.extractImageDataFromShapes = mod.extractImageDataFromShapes
-        canvasHelpers.getSelectionCenter = mod.getSelectionCenter
-        canvasHelpers.getViewportCenter = mod.getViewportCenter
-        canvasHelpers.addImageToCanvas = mod.addImageToCanvas
-        canvasHelpers.createLoadingPlaceholders = mod.createLoadingPlaceholders
-        canvasHelpers.getPositionNearSelection = mod.getPositionNearSelection
-        canvasHelpers.getDimensionsFromAspectRatio = mod.getDimensionsFromAspectRatio
-        canvasHelpers.findEmptySpace = mod.findEmptySpace
-        canvasHelpers.focusAndCenterShapes = mod.focusAndCenterShapes
-        setHelpersLoaded(true)
-      })
-    }
-  }, [])
-
-  // Helper to extract images as data URLs from response
-  const extractImagesFromResponse = (response: any): string[] => {
-    const images = response.choices.flatMap((choice: any) => {
-      if (choice.message.images && choice.message.images.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return choice.message.images.map((imageData: any) => {
-          let dataUrl: string
-
-          if (typeof imageData === 'object' && imageData.image_url?.url) {
-            dataUrl = imageData.image_url.url
-          } else if (typeof imageData === 'string') {
-            dataUrl = imageData
-          } else if (typeof imageData === 'object') {
-            dataUrl = imageData.url || imageData.b64_json || imageData.data || ''
-          } else {
-            dataUrl = String(imageData)
-          }
-
-          // Ensure data URL format
-          if (!dataUrl.startsWith('data:')) {
-            dataUrl = `data:image/png;base64,${dataUrl}`
-          }
-
-          return dataUrl
-        })
-      }
-      return []
-    })
-
-    return images
-  }
-
   const handleGenerate = async () => {
-    if (!editor || !helpersLoaded) {
+    if (!editor) {
       toast.error('Canvas is still loading, please wait...')
       return
     }
@@ -193,6 +165,7 @@ export default function PlaygroundPage() {
     setActiveGenerationsCount(prev => prev + 1)
 
     try {
+      const canvasHelpers = await loadCanvasHelpers()
       const credentials = getApiCredentials()
 
       if (!credentials) {
@@ -214,6 +187,7 @@ export default function PlaygroundPage() {
 
         // Extract and combine prompt histories from selected images
         const histories = selectedImages
+          .filter(isGeneratedImageShape)
           .map((img) => img.props.promptHistory)
           .filter((history): history is string[] => Array.isArray(history) && history.length > 0)
 
@@ -242,21 +216,18 @@ export default function PlaygroundPage() {
           aspectRatio,
           resolution: imageSize,
           promptHistory: combinedPromptHistory,
-          sourceImageData: isEdit && selectedImages.length > 0 ? selectedImages[0].props.imageData : undefined,
+          sourceImageData: inputImages?.[0],
         }
       )
 
       // Smart focus: only pan if shapes are outside viewport
       canvasHelpers.focusAndCenterShapes(editor, placeholderIds)
 
-      // Branch based on API mode
-      let requests
       const errorMessages: string[] = []
+      let successfulImages: string[] = []
 
       if (credentials.mode === 'gemini') {
-        // Use direct Gemini API
         const { generateGeminiImage, editGeminiImage } = await import('@/lib/gemini-direct-client')
-
         const baseParams = {
           model,
           prompt,
@@ -266,19 +237,48 @@ export default function PlaygroundPage() {
           apiKey: credentials.apiKey,
         }
 
-        const params = isEdit
-          ? { ...baseParams, images: inputImages as string[], imageIds, promptHistory: combinedPromptHistory }
-          : baseParams
+        let response: ImageApiResponse
+        try {
+          response = isEdit
+            ? await editGeminiImage({
+                ...baseParams,
+                images: inputImages ?? [],
+                imageIds,
+                promptHistory: combinedPromptHistory,
+              })
+            : await generateGeminiImage(baseParams)
+        } catch (error) {
+          placeholderIds.forEach((id) => editor.deleteShape(id))
+          throw error
+        }
 
-        // Gemini client handles parallel requests internally
-        requests = [isEdit ? editGeminiImage(params as any) : generateGeminiImage(params as any)]
+        const imageUrls = extractImagesFromResponse(response)
+        if (imageUrls.length === 0) {
+          placeholderIds.forEach((id) => editor.deleteShape(id))
+          throw new Error(
+            response.choices[0]?.message.content ||
+            'API returned no images. The model may have refused to generate the requested content.'
+          )
+        }
+
+        for (let index = 0; index < placeholderIds.length; index++) {
+          const imageUrl = imageUrls[index]
+          if (!imageUrl) {
+            editor.deleteShape(placeholderIds[index])
+            continue
+          }
+
+          try {
+            await updateGeneratedImageShape(editor, placeholderIds[index], imageUrl)
+            successfulImages.push(imageUrl)
+          } catch (error) {
+            console.error(`Failed to process image ${index + 1}:`, error)
+            editor.deleteShape(placeholderIds[index])
+          }
+        }
       } else {
-        // Use LiteLLM proxy
         const { generateGeminiImage, editGeminiImage } = await import('@/lib/litellm-client')
-        const apiFunction = isEdit ? editGeminiImage : generateGeminiImage
-
-        // Create parallel API requests
-        requests = Array.from({ length: numImages }, (_, index) => {
+        const requests = Array.from({ length: numImages }, (_, index) => {
           const baseParams = {
             model,
             prompt,
@@ -289,33 +289,20 @@ export default function PlaygroundPage() {
             baseURL: credentials.proxyUrl,
           }
 
-          const params = isEdit
-            ? { ...baseParams, images: inputImages as string[], imageIds, promptHistory: combinedPromptHistory }
-            : baseParams
+          const request = isEdit
+            ? editGeminiImage({
+                ...baseParams,
+                images: inputImages ?? [],
+                imageIds,
+                promptHistory: combinedPromptHistory,
+              })
+            : generateGeminiImage(baseParams)
 
-          return apiFunction(params as any)
+          return request
             .then(async (response) => {
               const imageUrls = extractImagesFromResponse(response)
               if (imageUrls.length > 0 && index < placeholderIds.length) {
-                // Load the image to get its actual dimensions
-                const img = new Image()
-                await new Promise<void>((resolve, reject) => {
-                  img.onload = () => resolve()
-                  img.onerror = () => reject(new Error('Failed to load image'))
-                  img.src = imageUrls[0]
-                })
-
-                // Update shape with image data and correct dimensions
-                editor.updateShape<GeneratedImageShape>({
-                  id: placeholderIds[index],
-                  type: 'generated-image',
-                  props: {
-                    imageData: imageUrls[0],
-                    isLoading: false,
-                    w: img.naturalWidth,
-                    h: img.naturalHeight,
-                  },
-                })
+                await updateGeneratedImageShape(editor, placeholderIds[index], imageUrls[0])
                 return imageUrls[0]
               }
               throw new Error('No image in response')
@@ -325,86 +312,12 @@ export default function PlaygroundPage() {
               console.error(`Request ${index + 1}/${numImages} failed:`, errorMsg)
               errorMessages.push(errorMsg)
               if (index < placeholderIds.length) {
-                editor.deleteShape(placeholderIds[index] as any)
+                editor.deleteShape(placeholderIds[index])
               }
               return null
             })
         })
-      }
-
-      // Wait for all requests and filter successful ones
-      const results = await Promise.allSettled(requests)
-
-      // Handle results differently based on API mode
-      let successfulImages: string[]
-
-      if (credentials.mode === 'gemini') {
-        // Gemini mode returns a single response with multiple images
-        if (results[0].status === 'fulfilled') {
-          const response = results[0].value
-          const imageUrls = extractImagesFromResponse(response)
-
-          if (imageUrls.length === 0) {
-            // API returned success but no images - check for text content with error
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const textContent = typeof response === 'object' ? (response as any)?.choices?.[0]?.message?.content || '' : ''
-            const errorMsg = textContent || 'API returned no images. The model may have refused to generate the requested content.'
-            console.error('Gemini API returned no images:', errorMsg)
-            errorMessages.push(errorMsg)
-            placeholderIds.forEach((id: string) => editor.deleteShape(id as any))
-            successfulImages = []
-          } else {
-            // Update all placeholders with the returned images
-            for (let i = 0; i < imageUrls.length && i < placeholderIds.length; i++) {
-              const imageUrl = imageUrls[i]
-              try {
-                // Load the image to get its actual dimensions
-                const img = new Image()
-                await new Promise<void>((resolve, reject) => {
-                  img.onload = () => resolve()
-                  img.onerror = () => reject(new Error('Failed to load image'))
-                  img.src = imageUrl
-                })
-
-                // Update shape with image data and correct dimensions
-                editor.updateShape<GeneratedImageShape>({
-                  id: placeholderIds[i],
-                  type: 'generated-image',
-                  props: {
-                    imageData: imageUrl,
-                    isLoading: false,
-                    w: img.naturalWidth,
-                    h: img.naturalHeight,
-                  },
-                })
-              } catch (error) {
-                console.error(`Failed to process image ${i + 1}:`, error)
-                editor.deleteShape(placeholderIds[i] as any)
-              }
-            }
-
-            // Delete any remaining placeholders if we got fewer images than expected
-            for (let i = imageUrls.length; i < placeholderIds.length; i++) {
-              editor.deleteShape(placeholderIds[i] as any)
-            }
-
-            successfulImages = imageUrls
-          }
-        } else {
-          // All failed - capture the error message
-          const error = results[0].reason
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-          console.error('Gemini API request failed:', errorMsg)
-          errorMessages.push(errorMsg)
-          // Delete all placeholders
-          placeholderIds.forEach((id: string) => editor.deleteShape(id as any))
-          successfulImages = []
-        }
-      } else {
-        // LiteLLM mode returns individual results for each request
-        successfulImages = results
-          .map((r) => (r.status === 'fulfilled' ? r.value : null))
-          .filter((url): url is string => url !== null)
+        successfulImages = (await Promise.all(requests)).filter((url): url is string => url !== null)
       }
 
       if (successfulImages.length === 0) {
@@ -462,7 +375,8 @@ export default function PlaygroundPage() {
   }
 
   const handleImagesUploaded = async (images: string[]) => {
-    if (!editor || !helpersLoaded) return
+    if (!editor) return
+    const canvasHelpers = await loadCanvasHelpers()
 
     // Add uploaded images to canvas at viewport center
     const centerPos = canvasHelpers.getViewportCenter(editor)
@@ -485,7 +399,7 @@ export default function PlaygroundPage() {
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !editor || !helpersLoaded) return
+    if (!e.target.files || !editor) return
 
     // Filter for supported image formats (exclude SVG as API requires raster images)
     const files = Array.from(e.target.files).filter((file) =>
@@ -525,7 +439,8 @@ export default function PlaygroundPage() {
   }
 
   const handleHistoryImagesSelected = async (images: string[]) => {
-    if (!editor || !helpersLoaded) return
+    if (!editor) return
+    const canvasHelpers = await loadCanvasHelpers()
 
     // Add history images to canvas at viewport center
     const centerPos = canvasHelpers.getViewportCenter(editor)
@@ -538,9 +453,10 @@ export default function PlaygroundPage() {
   }
 
   const handleCanvasDrop = async (imageUrl: string, position: { x: number; y: number }) => {
-    if (!editor || !helpersLoaded) return
+    if (!editor) return
 
     try {
+      const canvasHelpers = await loadCanvasHelpers()
       const shapeId = await canvasHelpers.addImageToCanvas(
         editor,
         imageUrl,
@@ -557,7 +473,7 @@ export default function PlaygroundPage() {
   }
 
   // Memoized selection change handler to prevent infinite loops
-  const handleSelectionChange = useCallback((images: GeneratedImageShape[]) => {
+  const handleSelectionChange = useCallback((images: CanvasImageShape[]) => {
     if (!editorRef.current) return
 
     // Only show IDs when 2+ images (any type) are selected
@@ -585,15 +501,21 @@ export default function PlaygroundPage() {
     setEditor(editorInstance)
   }, [])
 
+  if (!isHydrated) {
+    return <div className="fixed inset-0 bg-neutral-100 dark:bg-neutral-950" />
+  }
+
   return (
     <>
       {/* Selection Badge Overlay */}
       <SelectionBadges editor={editor} selectionIdMap={selectionIdMap} />
 
       {/* Logo - top left corner */}
-      <img
+      <NextImage
         src="/logo.svg"
         alt="Logo"
+        width={64}
+        height={16}
         className="fixed top-8 left-8 z-50 h-4 dark:invert-0 invert"
       />
 

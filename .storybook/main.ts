@@ -1,27 +1,7 @@
 import type { StorybookConfig } from "@storybook/nextjs-vite";
-import type { Plugin } from 'vite';
 import { fileURLToPath } from 'node:url';
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
-
-// Plugin to strip 'use client' directives for Storybook compatibility
-const stripUseClientPlugin = (): Plugin => ({
-  name: 'strip-use-client',
-  transform(code, id) {
-    if (id.includes('node_modules')) return null;
-    if (!id.endsWith('.tsx') && !id.endsWith('.ts')) return null;
-
-    // Remove 'use client' and 'use server' directives
-    const transformed = code
-      .replace(/^['"]use client['"]\s*;?\s*/gm, '')
-      .replace(/^['"]use server['"]\s*;?\s*/gm, '');
-
-    if (transformed !== code) {
-      return { code: transformed, map: null };
-    }
-    return null;
-  },
-});
 
 const config: StorybookConfig = {
   "stories": [
@@ -31,8 +11,7 @@ const config: StorybookConfig = {
   "addons": [
     "@chromatic-com/storybook",
     "@storybook/addon-docs",
-    "@storybook/addon-a11y",
-    "@storybook/addon-vitest"
+    "@storybook/addon-a11y"
   ],
   "framework": {
     "name": "@storybook/nextjs-vite",
@@ -48,29 +27,11 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     return {
       ...config,
-      plugins: [
-        stripUseClientPlugin(),
-        ...(config.plugins || []),
-      ],
       resolve: {
         ...config.resolve,
         alias: {
           '@': projectRoot,
         },
-      },
-      server: {
-        ...config.server,
-        fs: {
-          ...config.server?.fs,
-          strict: false,
-        },
-      },
-      optimizeDeps: {
-        ...config.optimizeDeps,
-        include: [
-          ...(config.optimizeDeps?.include || []),
-          'next-themes',
-        ],
       },
     };
   },

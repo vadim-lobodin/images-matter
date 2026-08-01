@@ -1,16 +1,16 @@
 import {
   BaseBoxShapeUtil,
-  DefaultColorStyle,
   RecordProps,
   T,
   TLResizeInfo,
   TLShape,
+  TLImageShape,
   resizeBox,
   HTMLContainer,
 } from '@tldraw/tldraw'
 import * as motion from 'motion/react-client'
 
-export interface GeneratedImageProps {
+interface GeneratedImageProps {
   w: number
   h: number
   imageData: string // base64 data URL (empty when loading)
@@ -33,9 +33,14 @@ declare module '@tldraw/tlschema' {
 
 // Define the shape type
 export type GeneratedImageShape = TLShape<'generated-image'>
+export type CanvasImageShape = GeneratedImageShape | TLImageShape
+
+export function isGeneratedImageShape(shape: CanvasImageShape): shape is GeneratedImageShape {
+  return shape.type === 'generated-image'
+}
 
 // Validation
-export const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
+const generatedImageShapeProps: RecordProps<GeneratedImageShape> = {
   w: T.number,
   h: T.number,
   imageData: T.string,
@@ -193,6 +198,8 @@ export class GeneratedImageShapeUtil extends BaseBoxShapeUtil<GeneratedImageShap
               height: '100%',
             }}
           >
+            {/* Data URLs rendered inside tldraw should preserve their native canvas dimensions. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={shape.props.imageData}
               alt={shape.props.prompt || 'Generated image'}

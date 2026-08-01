@@ -1,268 +1,98 @@
 # Image Playground
 
-A Next.js application for generating and editing images using Google Gemini AI models through LiteLLM proxy.
+A browser-based canvas for generating and editing images with Google Gemini. It supports direct Gemini API access and Gemini models routed through a LiteLLM proxy.
 
 ## Features
 
-### 🎨 Image Generation & Editing
-- **Text-to-Image**: Create stunning images from detailed text descriptions
-- **Image Editing**: Modify existing images with AI guidance (up to 4 input images)
-- **Batch Generation**: Generate 1-4 images simultaneously
-- **Multi-Resolution**: Choose between 1K (1024×1024) and 2K (2048×2048)
-- **Flexible Aspect Ratios**: 1:1, 3:4, 4:3, 9:16, 16:9
+- Generate one to four images from a prompt.
+- Edit selected or uploaded images with multi-image context.
+- Arrange results on an infinite tldraw canvas.
+- Choose model-specific aspect ratios and resolutions.
+- Reuse locally stored generation history.
+- Keep API credentials in browser storage rather than on the application server.
 
-### 🖼️ Interactive Canvas
-- **Infinite Canvas**: Powered by tldraw for smooth, intuitive interactions
-- **Visual Organization**: Drag, arrange, and organize generated images
-- **Multi-Selection**: Select multiple images for batch editing
-- **Zoom & Pan**: Navigate large collections with ease
+## Technology
 
-### ⌨️ Productivity Features
-- **Keyboard Shortcuts**: Enter to submit, Shift+Enter for line breaks
-- **Prompt History**: Navigate previous prompts with Arrow keys
-- **Auto-Save**: All prompts automatically saved to local history
-- **Smart Context**: Interface adapts based on generate vs edit mode
+- Next.js 16 and React 19
+- TypeScript 6
+- tldraw 5
+- Tailwind CSS 4
+- Motion animations
+- Storybook 10
+- IndexedDB history storage
 
-### 🔐 Privacy & Security
-- **Client-Side Storage**: Credentials stored only in your browser
-- **Your Own Proxy**: Connect to your LiteLLM proxy instance
-- **No Data Collection**: All processing happens through your configured proxy
-- **Local History**: Generation history stored in browser IndexedDB
+## Requirements
 
-### 💾 History & Management
-- **Persistent Storage**: Track all your creations locally
-- **Quick Restore**: Click history items to restore prompts and settings
-- **Image Reuse**: Use generated images as input for further editing
+- Node.js 22.12 or newer
+- npm 11
+- Either a Google Gemini API key or access to a LiteLLM proxy configured for Gemini image models
 
-## Tech Stack
+## Run locally
 
-- **Framework**: Next.js 16 with App Router and Turbopack
-- **UI**: React 19.2 with TypeScript
-- **Styling**: Tailwind CSS v4
-- **AI Integration**: LiteLLM proxy for Gemini API access
-- **Storage**: IndexedDB for local history
-
-## Getting Started
-
-### Prerequisites
-
-You need Node.js 22.12 or newer and access to a **LiteLLM proxy** that can route requests to Google Gemini AI models. You have two options:
-
-#### Option 1: Use an Existing LiteLLM Proxy
-
-If you have access to an existing LiteLLM proxy (e.g., corporate proxy), you'll need:
-- The proxy URL (e.g., `https://your-proxy.com`)
-- An API key for authentication
-
-#### Option 2: Set Up Your Own LiteLLM Proxy
-
-1. Follow the [LiteLLM Proxy Quick Start Guide](https://docs.litellm.ai/docs/proxy/quick_start)
-2. Configure it with your Google Vertex AI credentials
-3. Deploy it to a cloud provider (Vercel, Railway, fly.io, etc.)
-
-### Installation
-
-1. Clone the repository:
-   \`\`\`bash
-   git clone https://github.com/vadim-lobodin/images-matter.git
-   cd images-matter
-   \`\`\`
-
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
-
-3. (Optional) Create a \`.env.local\` file for default credentials:
-   \`\`\`env
-   LITELLM_API_KEY=your_api_key
-   LITELLM_PROXY_URL=https://your-proxy.com
-   \`\`\`
-
-   **Note**: Users can override these by configuring their own credentials in the Settings UI.
-
-4. Run the development server:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-
-5. Open [http://localhost:3000/playground](http://localhost:3000/playground) in your browser
-
-### Configuration
-
-1. Click the **Settings** button in the top-right corner
-2. Enter your LiteLLM proxy URL and API key
-3. Click **Save Settings**
-4. Start generating images!
-
-Credentials are stored securely in your browser's localStorage and are never sent to any server except the proxy you specify.
-
-## Usage
-
-### Interface Overview
-
-The application features a clean, floating toolbar at the bottom of the screen with:
-
-**Prompt Input**
-- Large text area for describing your image
-- Supports multi-line prompts (Shift+Enter for new lines)
-- Auto-saves to prompt history
-
-**Toolbar Controls** (left to right)
-- **+ Button**: Upload reference images for editing
-- **Image Count** (🖼️ #): Cycle through 1-4 images to generate
-- **Aspect Ratio** (📄): Toggle between 1:1, 3:4, 4:3, 9:16, 16:9
-- **Resolution** (↔️): Switch between 1K and 2K image sizes
-- **Settings** (⚙️): Configure API credentials
-- **Generate/Edit** (↑): Submit prompt (also triggered by Enter key)
-
-### Generate Mode
-
-1. Enter a text prompt describing the image you want to create
-2. Select the number of images to generate (1-4)
-3. Choose your aspect ratio (disabled when editing selected images)
-4. Choose resolution (1K or 2K)
-5. Press **Enter** or click the arrow button to generate
-
-**Example prompts:**
-- "A serene mountain landscape at sunset with vibrant orange and purple skies"
-- "A futuristic cityscape with flying cars and neon lights"
-- "A cozy coffee shop interior with warm lighting and vintage furniture"
-
-### Edit Mode
-
-1. Select one or more generated images on the canvas
-2. Click the **+ button** to upload reference images (optional)
-3. Enter a prompt describing the changes you want
-4. Configure the number of output images and resolution
-5. Press **Enter** or click the arrow button to edit
-
-**Note:** When images are selected, aspect ratio is locked to 1:1 for compatibility.
-
-### Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| **Enter** | Submit the prompt and generate/edit images |
-| **Shift+Enter** | Insert a line break in the prompt |
-| **Arrow Up** | Navigate to previous prompt in history |
-| **Arrow Down** | Navigate to next prompt in history |
-
-### Canvas Interactions
-
-- **Click & Drag**: Move images around the canvas
-- **Click**: Select/deselect images
-- **Multi-select**: Click multiple images to select them for editing
-- **Zoom**: Use mouse wheel or pinch gestures
-- **Pan**: Click and drag on empty canvas space
-
-### History
-
-All generations are automatically saved to your browser's IndexedDB. Click on any history item to:
-- View the generated images
-- Restore the prompt and settings
-- Use generated images as input for editing
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Deploy (no environment variables needed - users configure their own credentials)
-
-### Other Platforms
-
-This is a standard Next.js app and can be deployed to any platform that supports Next.js:
-- Netlify
-- Railway
-- fly.io
-- AWS Amplify
-- etc.
-
-## Development
-
-\`\`\`bash
-# Run development server
+```bash
+npm ci
 npm run dev
+```
 
-# Build for production
-npm run build
+Open [http://localhost:3000/cascade](http://localhost:3000/cascade), open Settings, and configure one of the API modes:
 
-# Start production server
-npm start
+- **Google Gemini API:** enter a key from Google AI Studio.
+- **LiteLLM proxy:** enter the proxy URL and its API key.
 
-# Lint code
-npm run lint
-\`\`\`
+Credentials and playground preferences are stored in `localStorage`. Generated-image history is stored in IndexedDB.
 
-## Architecture
+## Commands
 
-### Project Structure
+```bash
+npm run dev              # Start the development server
+npm run lint             # Run ESLint and TypeScript checks
+npm run build            # Create the production application build
+npm run storybook        # Start Storybook on port 6006
+npm run build-storybook  # Create the static Storybook build
+```
 
-\`\`\`
+## Project structure
+
+```text
 app/
-├── cascade/
-│   ├── page.tsx              # Main playground page
-│   └── layout.tsx            # Cascade-specific layout
-├── api/
-│   └── cascade/
-│       ├── generate/         # Image generation endpoint
-│       └── gemini-direct/    # Direct Gemini API endpoint
-├── globals.css               # Global styles
-└── layout.tsx                # Root layout with theme provider
+├── cascade/page.tsx              Image-generation workflow and canvas UI
+├── cascade/layout.tsx            Route metadata
+├── layout.tsx                    Theme, analytics, and toast providers
+└── page.tsx                      Root portfolio page
 
 components/
-├── canvas/
-│   ├── TldrawCanvas.tsx      # Infinite canvas component
-│   ├── FloatingToolbar.tsx   # Main UI toolbar (prompt + controls)
-│   ├── HistoryModal.tsx      # Generation history viewer
-│   └── SelectionBadges.tsx   # Selected image indicators
-├── cascade/
-│   ├── PromptInput.tsx       # Multi-line prompt input with shortcuts
-│   ├── ApiSettings.tsx       # Settings modal for API configuration
-│   └── ModelSelector.tsx     # Model selection dropdown
-└── ui/                       # Reusable UI components (buttons, etc.)
+├── canvas/                       Canvas, toolbar, history, and selection overlays
+├── cascade/                      Prompt, model, parameter, and API settings UI
+├── providers/                    Application providers
+└── ui/sonner.tsx                 Toast presentation
 
 lib/
-├── canvas/
-│   ├── ImageShape.tsx        # Custom tldraw shape for images
-│   └── canvasHelpers.ts      # Canvas utility functions
-├── gemini-direct-client.ts   # Direct Gemini API client
-├── litellm-client.ts         # LiteLLM proxy client
-└── models.ts                 # Model configuration & types
-\`\`\`
+├── canvas/ImageShape.tsx         Custom generated-image tldraw shape
+├── canvas/canvasHelpers.ts       Placement, upload, and export operations
+├── gemini-direct-client.ts       Direct Gemini REST client
+├── litellm-client.ts             LiteLLM chat-completions client
+├── image-api.ts                  Shared image response parsing
+├── history-store.ts              IndexedDB history persistence
+└── models.ts                     Supported models and capabilities
+```
 
-### Data Flow
+The tldraw component and canvas helpers are loaded on demand so the main route does not server-render browser-only canvas code. LiteLLM generation runs one request per output image; direct Gemini generation batches internally.
 
-1. **User Input** → \`FloatingToolbar\` receives prompt and parameters
-2. **Submission** → \`page.tsx\` handles generation logic
-3. **API Call** → Either LiteLLM proxy or direct Gemini API
-4. **Response** → Images rendered on \`TldrawCanvas\` as custom shapes
-5. **Storage** → Generation metadata saved to IndexedDB
-6. **History** → Accessible via \`HistoryModal\`
+## Data and security
 
-### Key Technologies
+- The application has no server-side credential store.
+- API keys are sent only to the selected Gemini endpoint or configured LiteLLM proxy.
+- History is capped at the latest 50 entries.
+- Clearing browser site data removes credentials, settings, canvas persistence, and history.
 
-- **Next.js 15**: App Router with React Server Components
-- **React 19**: Latest features including concurrent rendering
-- **tldraw**: Infinite canvas library for image manipulation
-- **Motion**: Framer Motion for smooth animations
-- **IndexedDB**: Client-side database for history
-- **Tailwind CSS v4**: Utility-first styling
-- **TypeScript**: Full type safety throughout
+## Validation
 
-## Security
+Before submitting changes, run:
 
-- API credentials are stored only in browser localStorage
-- No server-side credential storage (unless you set env vars)
-- Credentials are only sent to the LiteLLM proxy URL you specify
-- Clear browser data to remove stored credentials
-
-## License
-
-MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+```bash
+npm ci
+npm run lint
+npm run build
+npm run build-storybook
+npm audit
+```

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CloseLarge, View, ViewOff, WarningAlt, Information } from "@carbon/icons-react";
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
@@ -10,36 +10,34 @@ interface ApiSettingsProps {
   onClose: () => void;
 }
 
+const DEFAULT_PROXY_URL = "https://litellm.labs.jb.gg";
+
+function readApiSettings() {
+  if (typeof window === "undefined") {
+    return { apiMode: "gemini" as const, apiKey: "", geminiApiKey: "", proxyUrl: DEFAULT_PROXY_URL };
+  }
+
+  return {
+    apiMode: (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini",
+    apiKey: localStorage.getItem("litellm_api_key") || "",
+    geminiApiKey: localStorage.getItem("gemini_api_key") || "",
+    proxyUrl: localStorage.getItem("litellm_proxy_url") || DEFAULT_PROXY_URL,
+  };
+}
+
 export function ApiSettings({ isOpen, onClose }: ApiSettingsProps) {
-  const [apiMode, setApiMode] = useState<"litellm" | "gemini">("gemini");
-  const [apiKey, setApiKey] = useState("");
-  const [geminiApiKey, setGeminiApiKey] = useState("");
-  const [proxyUrl, setProxyUrl] = useState("https://litellm.labs.jb.gg");
+  const [initialSettings] = useState(readApiSettings);
+  const [apiMode, setApiMode] = useState<"litellm" | "gemini">(initialSettings.apiMode);
+  const [apiKey, setApiKey] = useState(initialSettings.apiKey);
+  const [geminiApiKey, setGeminiApiKey] = useState(initialSettings.geminiApiKey);
+  const [proxyUrl, setProxyUrl] = useState(initialSettings.proxyUrl);
   const [showKey, setShowKey] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(
+    initialSettings.apiMode === "gemini"
+      ? Boolean(initialSettings.geminiApiKey)
+      : Boolean(initialSettings.apiKey && initialSettings.proxyUrl)
+  );
   const [error, setError] = useState<string | null>(null);
-
-  // Refresh state from localStorage whenever modal opens
-  useEffect(() => {
-    if (isOpen && typeof window !== "undefined") {
-      const mode = (localStorage.getItem("api_mode") as "litellm" | "gemini") || "gemini";
-      setApiMode(mode);
-      setApiKey(localStorage.getItem("litellm_api_key") || "");
-      setGeminiApiKey(localStorage.getItem("gemini_api_key") || "");
-      setProxyUrl(localStorage.getItem("litellm_proxy_url") || "https://litellm.labs.jb.gg");
-      setShowKey(false);
-      setError(null);
-
-      // Check if already saved
-      if (mode === "gemini") {
-        setIsSaved(!!localStorage.getItem("gemini_api_key"));
-      } else {
-        const savedKey = localStorage.getItem("litellm_api_key");
-        const savedUrl = localStorage.getItem("litellm_proxy_url");
-        setIsSaved(!!(savedKey && savedUrl));
-      }
-    }
-  }, [isOpen]);
 
   const handleSave = () => {
     setError(null);

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 import { ModelSelector } from '@/components/cascade/ModelSelector'
 import type { ModelKey } from '@/lib/models'
 

@@ -5,15 +5,11 @@ import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 import * as motion from 'motion/react-client'
 import { AnimatePresence } from 'motion/react'
-
-export interface HistoryItem {
-  id: string
-  timestamp: number
-  mode: 'generate' | 'edit' | 'variations'
-  model: string
-  prompt?: string
-  images: Array<{ url?: string; b64_json?: string }>
-}
+import {
+  deleteHistoryItem,
+  getAllHistory,
+  type HistoryItem,
+} from '@/lib/history-store'
 
 interface HistoryModalProps {
   isOpen: boolean
@@ -22,80 +18,8 @@ interface HistoryModalProps {
   reloadTrigger?: number
 }
 
-// IndexedDB helper functions
-const DB_NAME = 'ImageGenerationDB'
-const STORE_NAME = 'history'
-const DB_VERSION = 1
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
-        store.createIndex('timestamp', 'timestamp', { unique: false })
-      }
-    }
-  })
-}
-
-async function getAllHistory(): Promise<HistoryItem[]> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly')
-    const store = transaction.objectStore(STORE_NAME)
-    const index = store.index('timestamp')
-    const request = index.openCursor(null, 'prev') // Descending order
-
-    const items: HistoryItem[] = []
-
-    request.onsuccess = () => {
-      const cursor = request.result
-      if (cursor) {
-        items.push(cursor.value)
-        cursor.continue()
-      } else {
-        resolve(items)
-      }
-    }
-
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function deleteHistoryItem(id: string): Promise<void> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite')
-    const store = transaction.objectStore(STORE_NAME)
-    const request = store.delete(id)
-
-    request.onsuccess = () => resolve()
-    request.onerror = () => reject(request.error)
-  })
-}
-
-async function clearAllHistory(): Promise<void> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite')
-    const store = transaction.objectStore(STORE_NAME)
-    const request = store.clear()
-
-    request.onsuccess = () => resolve()
-    request.onerror = () => reject(request.error)
-  })
-}
-
 export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, reloadTrigger }: HistoryModalProps) {
   const [history, setHistory] = useState<HistoryItem[] | null>(null)
-  const [shouldRender, setShouldRender] = useState(false)
-  const [isClearing, setIsClearing] = useState(false)
   const [displayLimit, setDisplayLimit] = useState(20) // Show only first 20 items initially
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
@@ -103,6 +27,7 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
     getAllHistory()
       .then((items) => {
         setHistory(items)
+        setDisplayLimit(20)
         onHistoryCountChange?.(items.length)
       })
       .catch((error) => {
@@ -113,40 +38,15 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
   }, [onHistoryCountChange])
 
   useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      setShouldRender(true)
-      // Load history when modal opens
-      loadHistory()
-      // Reset display limit when opening
-      setDisplayLimit(20)
-    } else if (shouldRender) {
-      // Wait for exit animation before unmounting
-      const timer = setTimeout(() => {
-        setShouldRender(false)
-        setHistory(null)
-      }, 300) // Match panel exit duration
-      return () => clearTimeout(timer)
-    }
-  }, [isOpen, shouldRender, loadHistory])
+    if (isOpen) loadHistory()
+  }, [isOpen, loadHistory])
 
   // Reload history when reloadTrigger changes (e.g., after clear all)
   useEffect(() => {
     if (isOpen && reloadTrigger !== undefined && reloadTrigger > 0) {
-      // Trigger clearing animation
-      setIsClearing(true)
-      // Wait for individual item animations and grid exit to complete
-      const itemCount = history?.length || 0
-      const itemExitDuration = 250 + itemCount * 20 // Individual items fade out
-      const gridExitDuration = 200 // Grid container exit
-      const totalDuration = itemExitDuration + gridExitDuration
-      setTimeout(() => {
-        loadHistory()
-        setIsClearing(false)
-        setDisplayLimit(20) // Reset display limit after reload
-      }, totalDuration)
+      loadHistory()
     }
-  }, [reloadTrigger, isOpen, loadHistory, history?.length])
+  }, [reloadTrigger, isOpen, loadHistory])
 
   // Handle scroll for infinite loading
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -242,7 +142,7 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
             if (dragPreview.parentNode) {
               document.body.removeChild(dragPreview)
             }
-          } catch (err) {
+          } catch {
             // Element already removed, ignore
           }
         }, 0)
@@ -250,12 +150,13 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
     }
   }
 
-  if (!shouldRender || history === null) return null
-
   return (
-    <motion.div
+    <AnimatePresence>
+      {isOpen && history !== null ? (
+      <motion.div
       initial={{ opacity: 0, x: 20 }}
-      animate={isOpen ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
       transition={{
         duration: 0.3,
         ease: [0.4, 0, 0.2, 1]
@@ -268,7 +169,7 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
         onScroll={handleScroll}
       >
           <AnimatePresence mode="wait">
-            {history.length === 0 && !isClearing ? (
+            {history.length === 0 ? (
               <motion.div
                 key="empty-state"
                 initial={{ opacity: 0 }}
@@ -309,17 +210,11 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, scale: 0.9 }}
-                    animate={
-                      isClearing
-                        ? { opacity: 0, scale: 0.9 }
-                        : isOpen
-                        ? { opacity: 1, scale: 1 }
-                        : { opacity: 0, scale: 0.9 }
-                    }
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{
                       duration: 0.25,
                       // Cap animation delay at 20 items to prevent excessive stagger
-                      delay: isClearing ? Math.min(index, 20) * 0.02 : isOpen ? Math.min(index, 20) * 0.02 : 0,
+                      delay: Math.min(index, 20) * 0.02,
                       ease: [0.4, 0, 0.2, 1]
                     }}
                     style={{ transform: 'translateY(0)' }}
@@ -370,41 +265,8 @@ export function HistoryModal({ isOpen, onSelectImages, onHistoryCountChange, rel
             )}
           </AnimatePresence>
       </div>
-    </motion.div>
+      </motion.div>
+      ) : null}
+    </AnimatePresence>
   )
-}
-
-// Export clearAllHistory helper for parent components
-export { clearAllHistory }
-
-// Helper function to add item to history (to be called from main page)
-export async function addToHistory(item: Omit<HistoryItem, 'id' | 'timestamp'>) {
-  const historyItem: HistoryItem = {
-    ...item,
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-  }
-
-  try {
-    const db = await openDB()
-
-    // Add the new item
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readwrite')
-      const store = transaction.objectStore(STORE_NAME)
-      const request = store.add(historyItem)
-
-      request.onsuccess = () => resolve()
-      request.onerror = () => reject(request.error)
-    })
-
-    // Keep only last 50 items (clean up old ones)
-    const allItems = await getAllHistory()
-    if (allItems.length > 50) {
-      const itemsToDelete = allItems.slice(50)
-      await Promise.all(itemsToDelete.map((item) => deleteHistoryItem(item.id)))
-    }
-  } catch (error) {
-    console.error('Failed to save to history:', error)
-  }
 }
